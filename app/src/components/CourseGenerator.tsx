@@ -5,7 +5,7 @@
  * Shows loading state and error handling.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sparkles, Loader2, BookOpen, Lightbulb, Code, Brain, Rocket, CheckCircle2 } from 'lucide-react';
@@ -33,11 +33,14 @@ const CourseGenerator: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   // Cleanup SSE connection on unmount
   useEffect(() => {
     return () => {
-      // Any cleanup needed
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
     };
   }, []);
 
@@ -70,7 +73,7 @@ const CourseGenerator: React.FC = () => {
         setProgressMessage('Course created! Connecting to progress updates...');
         
         // Connect to SSE for real-time progress
-        const cleanup = courseApi.connectToCourseProgress(
+        cleanupRef.current = courseApi.connectToCourseProgress(
           courseId,
           // Progress handler
           (data) => {
@@ -78,7 +81,7 @@ const CourseGenerator: React.FC = () => {
             setProgressMessage(data.message);
           },
           // Complete handler
-          (data) => {
+          (_data) => {
             setProgress(100);
             setProgressMessage('Course generation complete!');
             // Navigate to the course after a short delay

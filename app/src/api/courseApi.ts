@@ -16,7 +16,6 @@ import type {
   GenerationStatus,
 } from '@/types';
 import { apiGet, apiPost, apiDelete } from './client';
-import { connectToCourseProgress, type SSEProgressEvent, type SSECompleteEvent, type SSEErrorEvent } from '@/utils/sse';
 
 // ============================================
 // Course API Methods

@@ -25,8 +25,6 @@ export interface SSEErrorEvent {
 
 export type SSEEventType = 'progress' | 'complete' | 'error' | 'connected';
 
-type EventHandler = (data: SSEProgressEvent | SSECompleteEvent | SSEErrorEvent) => void;
-
 /**
  * Connect to SSE endpoint for course generation progress
  * @param courseId - The course ID to subscribe to
