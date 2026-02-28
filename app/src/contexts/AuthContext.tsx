@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -37,6 +38,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -50,6 +52,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (err) {
       console.warn('failed to load auth from storage', err);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -97,6 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     token,
     isAuthenticated: !!token,
+    isLoading,
     login,
     signup,
     logout,
