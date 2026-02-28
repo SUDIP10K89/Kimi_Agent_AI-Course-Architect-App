@@ -2,10 +2,9 @@
  * Course API Service
  * 
  * Handles all HTTP requests to the backend API.
- * Provides typed methods for course operations.
+ * Uses the unified API client from client.ts
  */
 
-import axios, { type AxiosInstance } from 'axios';
 import type {
   ApiResponse,
   Course,
@@ -16,74 +15,8 @@ import type {
   Module,
   GenerationStatus,
 } from '@/types';
-
-// ============================================
-// Axios Configuration
-// ============================================
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000, // 30 second timeout
-});
-
-// Automatically attach auth token from localStorage if present
-apiClient.interceptors.request.use(
-  (config) => {
-    // try reading unified auth object (set by AuthContext)
-  let token: string | null = null;
-  const stored = localStorage.getItem('auth');
-  if (stored) {
-    try {
-      token = JSON.parse(stored).token;
-    } catch {}
-  }
-    if (token && config.headers) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Request interceptor for logging
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log(`📡 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (axios.isAxiosError(error) && error.response) {
-      // logout on 401 so UI can respond
-      if (error.response.status === 401) {
-        localStorage.removeItem('auth');
-        window.location.href = '/login';
-      }
-      console.error('API Error:', error.response.data);
-      return Promise.reject(error.response.data);
-    }
-    return Promise.reject({ success: false, error: 'Network error' });
-  }
-);
-
-// helper to manually set authorization header on instance
-export const setAuthToken = (token: string | null) => {
-  if (token) {
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete apiClient.defaults.headers.common['Authorization'];
-  }
-};
+import { apiGet, apiPost, apiDelete } from './client';
+import { connectToCourseProgress, type SSEProgressEvent, type SSECompleteEvent, type SSEErrorEvent } from '@/utils/sse';
 
 // ============================================
 // Course API Methods
@@ -93,7 +26,7 @@ export const setAuthToken = (token: string | null) => {
  * Generate a new course from a topic
  */
 export const generateCourse = async (topic: string): Promise<ApiResponse<{ courseId: string; title: string; description: string; modulesCount: number; microTopicsCount: number }>> => {
-  const response = await apiClient.post('/courses/generate', { topic });
+  const response = await apiPost<ApiResponse<{ courseId: string; title: string; description: string; modulesCount: number; microTopicsCount: number }>>('/courses/generate', { topic });
   return response.data;
 };
 
@@ -114,7 +47,7 @@ export const getAllCourses = async (
   if (search) params.append('search', search);
   if (status) params.append('status', status);
 
-  const response = await apiClient.get(`/courses?${params.toString()}`);
+  const response = await apiGet<ApiResponse<PaginatedCourses>>(`/courses?${params.toString()}`);
   return response.data;
 };
 
@@ -122,7 +55,7 @@ export const getAllCourses = async (
  * Get recent courses
  */
 export const getRecentCourses = async (limit = 5): Promise<ApiResponse<{ courses: Course[] }>> => {
-  const response = await apiClient.get(`/courses/recent?limit=${limit}`);
+  const response = await apiGet<ApiResponse<{ courses: Course[] }>>(`/courses/recent?limit=${limit}`);
   return response.data;
 };
 
@@ -130,7 +63,7 @@ export const getRecentCourses = async (limit = 5): Promise<ApiResponse<{ courses
  * Get course by ID
  */
 export const getCourseById = async (courseId: string): Promise<ApiResponse<CourseWithStatus>> => {
-  const response = await apiClient.get(`/courses/${courseId}`);
+  const response = await apiGet<ApiResponse<CourseWithStatus>>(`/courses/${courseId}`);
   return response.data;
 };
 
@@ -138,7 +71,7 @@ export const getCourseById = async (courseId: string): Promise<ApiResponse<Cours
  * Get course generation status
  */
 export const getCourseStatus = async (courseId: string): Promise<ApiResponse<{ courseId: string; generationStatus: GenerationStatus; progress: { completedMicroTopics: number; totalMicroTopics: number; percentage: number } }>> => {
-  const response = await apiClient.get(`/courses/${courseId}/status`);
+  const response = await apiGet<ApiResponse<{ courseId: string; generationStatus: GenerationStatus; progress: { completedMicroTopics: number; totalMicroTopics: number; percentage: number } }>>(`/courses/${courseId}/status`);
   return response.data;
 };
 
@@ -150,7 +83,17 @@ export const generateMicroTopicContent = async (
   moduleId: string,
   topicId: string
 ): Promise<ApiResponse<{ microTopic: MicroTopic }>> => {
-  const response = await apiClient.post(`/courses/${courseId}/modules/${moduleId}/topics/${topicId}/generate`);
+  const response = await apiPost<ApiResponse<{ microTopic: MicroTopic }>>(`/courses/${courseId}/modules/${moduleId}/topics/${topicId}/generate`);
+  return response.data;
+};
+
+/**
+ * Continue/Resume content generation for a course
+ */
+export const continueCourseGeneration = async (
+  courseId: string
+): Promise<ApiResponse<{ courseId: string; processedItems?: number; totalItems?: number }>> => {
+  const response = await apiPost<ApiResponse<{ courseId: string; processedItems?: number; totalItems?: number }>>(`/courses/${courseId}/continue`);
   return response.data;
 };
 
@@ -162,7 +105,7 @@ export const completeMicroTopic = async (
   moduleId: string,
   topicId: string
 ): Promise<ApiResponse<{ progress: { completedMicroTopics: number; totalMicroTopics: number; percentage: number } }>> => {
-  const response = await apiClient.post(`/courses/${courseId}/modules/${moduleId}/topics/${topicId}/complete`);
+  const response = await apiPost<ApiResponse<{ progress: { completedMicroTopics: number; totalMicroTopics: number; percentage: number } }>>(`/courses/${courseId}/modules/${moduleId}/topics/${topicId}/complete`);
   return response.data;
 };
 
@@ -173,7 +116,7 @@ export const regenerateModule = async (
   courseId: string,
   moduleId: string
 ): Promise<ApiResponse<{ module: Module }>> => {
-  const response = await apiClient.post(`/courses/${courseId}/modules/${moduleId}/regenerate`);
+  const response = await apiPost<ApiResponse<{ module: Module }>>(`/courses/${courseId}/modules/${moduleId}/regenerate`);
   return response.data;
 };
 
@@ -181,7 +124,7 @@ export const regenerateModule = async (
  * Archive a course
  */
 export const archiveCourse = async (courseId: string): Promise<ApiResponse<{ course: Course }>> => {
-  const response = await apiClient.post(`/courses/${courseId}/archive`);
+  const response = await apiPost<ApiResponse<{ course: Course }>>(`/courses/${courseId}/archive`);
   return response.data;
 };
 
@@ -189,7 +132,7 @@ export const archiveCourse = async (courseId: string): Promise<ApiResponse<{ cou
  * Delete a course
  */
 export const deleteCourse = async (courseId: string): Promise<ApiResponse<void>> => {
-  const response = await apiClient.delete(`/courses/${courseId}`);
+  const response = await apiDelete<ApiResponse<void>>(`/courses/${courseId}`);
   return response.data;
 };
 
@@ -197,7 +140,7 @@ export const deleteCourse = async (courseId: string): Promise<ApiResponse<void>>
  * Export course
  */
 export const exportCourse = async (courseId: string): Promise<ApiResponse<unknown>> => {
-  const response = await apiClient.get(`/courses/${courseId}/export`);
+  const response = await apiGet<ApiResponse<unknown>>(`/courses/${courseId}/export`);
   return response.data;
 };
 
@@ -205,7 +148,7 @@ export const exportCourse = async (courseId: string): Promise<ApiResponse<unknow
  * Get course statistics
  */
 export const getCourseStats = async (): Promise<ApiResponse<StatsResponse>> => {
-  const response = await apiClient.get('/courses/stats/overview');
+  const response = await apiGet<ApiResponse<StatsResponse>>('/courses/stats/overview');
   return response.data;
 };
 
@@ -217,7 +160,7 @@ export const getCourseStats = async (): Promise<ApiResponse<StatsResponse>> => {
  * Check API health
  */
 export const checkHealth = async (): Promise<ApiResponse<{ message: string; timestamp: string; uptime: number }>> => {
-  const response = await apiClient.get('/health');
+  const response = await apiGet<ApiResponse<{ message: string; timestamp: string; uptime: number }>>('/health');
   return response.data;
 };
 
@@ -225,9 +168,12 @@ export const checkHealth = async (): Promise<ApiResponse<{ message: string; time
  * Check detailed health status
  */
 export const checkDetailedHealth = async (): Promise<ApiResponse<unknown>> => {
-  const response = await apiClient.get('/health/detailed');
+  const response = await apiGet<ApiResponse<unknown>>('/health/detailed');
   return response.data;
 };
+
+export { connectToCourseProgress } from '@/utils/sse';
+export type { SSEProgressEvent, SSECompleteEvent, SSEErrorEvent } from '@/utils/sse';
 
 export default {
   generateCourse,

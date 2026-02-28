@@ -110,6 +110,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/courses/generate', generationLimiter);
 app.use('/api/courses', courseRoutes);
 
+// SSE routes for real-time progress (mounted on separate path to avoid conflicts)
+import sseRoutes from './routes/sseRoutes.js';
+app.use('/api/sse', sseRoutes);
+
 // ============================================
 // Root Route
 // ============================================

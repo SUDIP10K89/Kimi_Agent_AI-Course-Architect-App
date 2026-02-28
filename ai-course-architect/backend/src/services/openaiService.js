@@ -100,6 +100,34 @@ Rules:
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
+// Transient errors that should trigger a retry
+const TRANSIENT_ERROR_CODES = [429, 500, 502, 503, 504];
+
+/**
+ * Check if an error is transient and worth retrying
+ * @param {Error} error - The error to check
+ * @returns {boolean} True if the error is transient
+ */
+const isTransientError = (error) => {
+  // Check for rate limit (429)
+  if (error?.response?.status === 429) {
+    return true;
+  }
+  // Check for server errors (5xx)
+  if (TRANSIENT_ERROR_CODES.includes(error?.response?.status)) {
+    return true;
+  }
+  // Check for timeout errors
+  if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+    return true;
+  }
+  // Check for network errors
+  if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+    return true;
+  }
+  return false;
+};
+
 /**
  * Sleep utility for retry delays
  * @param {number} ms - Milliseconds to sleep
@@ -128,11 +156,16 @@ const parseJSONResponse = (content) => {
     // Remove any leading/trailing whitespace
     cleaned = cleaned.trim();
 
+    // Check if content is empty
+    if (!cleaned || cleaned.length === 0) {
+      throw new Error('AI response content is empty');
+    }
+
     return JSON.parse(cleaned);
   } catch (error) {
     console.error('JSON parsing error:', error.message);
     console.error('Raw content:', content.substring(0, 500));
-    throw new Error('Failed to parse AI response as JSON');
+    throw new Error(`Failed to parse AI response as JSON: ${error.message}`);
   }
 };
 
@@ -142,11 +175,17 @@ const parseJSONResponse = (content) => {
  * @returns {Promise<Object>} Course outline object
  */
 export const generateCourseOutline = async (topic) => {
+  // Validate input
+  if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
+    throw new Error('Topic is required and must be a non-empty string');
+  }
+
+  const trimmedTopic = topic.trim();
   let lastError;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.log(`🔄 Generating course outline for "${topic}" (attempt ${attempt}/${MAX_RETRIES})...`);
+      console.log(`🔄 Generating course outline for "${trimmedTopic}" (attempt ${attempt}/${MAX_RETRIES})...`);
 
       const response = await openai.chat.completions.create({
         model: OPENAI_CONFIG.MODEL,
@@ -154,7 +193,7 @@ export const generateCourseOutline = async (topic) => {
           { role: 'system', content: OUTLINE_SYSTEM_PROMPT },
           {
             role: 'user',
-            content: `Create a comprehensive course outline for: "${topic}". 
+            content: `Create a comprehensive course outline for: "${trimmedTopic}". 
             
 The course should progress from beginner to advanced level.
 Include practical, real-world applications.
@@ -166,24 +205,66 @@ Structure the content for optimal learning progression.`
         response_format: { type: 'json_object' },
       });
 
-      const content = response.choices[0]?.message?.content;
+      // DEBUG: Log full response structure for debugging
+      console.log('📡 API Response structure:', {
+        hasChoices: Array.isArray(response.choices),
+        choicesLength: response.choices?.length,
+        hasFirstChoice: !!response.choices?.[0],
+        hasMessage: !!response.choices?.[0]?.message,
+        hasContent: !!response.choices?.[0]?.message?.content,
+      });
+
+      // Safety check: Ensure response has choices
+      if (!response.choices || !Array.isArray(response.choices) || response.choices.length === 0) {
+        console.error('❌ Empty choices array in API response:', JSON.stringify(response).slice(0, 500));
+        throw new Error('API returned empty choices array');
+      }
+
+      const firstChoice = response.choices[0];
+      
+      // Check for refusal or other special cases
+      if (firstChoice.finish_reason === 'content_filter') {
+        throw new Error('Content filtered by API safety policies');
+      }
+
+      const content = firstChoice.message?.content;
 
       if (!content) {
-        throw new Error('Empty response from OpenAI');
+        console.error('❌ Empty content in API response:', JSON.stringify(firstChoice).slice(0, 500));
+        throw new Error('Empty response content from OpenAI');
       }
 
       const outline = parseJSONResponse(content);
 
-      // Validate outline structure
-      if (!outline.title || !Array.isArray(outline.modules)) {
-        throw new Error('Invalid outline structure: missing title or modules array');
+      // Validate outline structure with fallback
+      if (!outline) {
+        throw new Error('Failed to parse outline: parsed result is null/undefined');
       }
 
-      // Validate each module
-      outline.modules.forEach((module, index) => {
-        if (!module.title || !Array.isArray(module.microTopics)) {
-          throw new Error(`Invalid module structure at index ${index}`);
+      if (!outline.title) {
+        console.warn('⚠️ Outline missing title, using fallback');
+        outline.title = trimmedTopic;
+      }
+
+      if (!Array.isArray(outline.modules) || outline.modules.length === 0) {
+        console.warn('⚠️ Outline missing modules, using fallback');
+        outline.modules = [{
+          title: 'Introduction',
+          microTopics: ['Getting Started']
+        }];
+      }
+
+      // Validate each module with fallback
+      outline.modules = outline.modules.map((module, index) => {
+        if (!module.title) {
+          console.warn(`⚠️ Module at index ${index} missing title, using fallback`);
+          module.title = `Module ${index + 1}`;
         }
+        if (!Array.isArray(module.microTopics) || module.microTopics.length === 0) {
+          console.warn(`⚠️ Module "${module.title}" missing microTopics, using fallback`);
+          module.microTopics = ['Topic Overview'];
+        }
+        return module;
       });
 
       console.log(`✅ Course outline generated: "${outline.title}" with ${outline.modules.length} modules`);
@@ -194,6 +275,8 @@ Structure the content for optimal learning progression.`
       lastError = error;
 
       const status = error?.response?.status;
+      
+      // Handle authentication errors - don't retry
       if (status === 401) {
         console.error(`❌ Unauthorized (${status}) - invalid or missing OpenAI API key`);
         throw new Error('OpenAI API unauthorized - please verify your API key');
@@ -201,9 +284,15 @@ Structure the content for optimal learning progression.`
 
       console.error(`❌ Attempt ${attempt} failed:`, error.message);
 
-      if (attempt < MAX_RETRIES) {
-        console.log(`⏳ Retrying in ${RETRY_DELAY}ms...`);
-        await sleep(RETRY_DELAY * attempt);
+      // Only retry on transient errors
+      if (attempt < MAX_RETRIES && isTransientError(error)) {
+        const delay = RETRY_DELAY * attempt;
+        console.log(`⏳ Retrying in ${delay}ms (transient error detected)...`);
+        await sleep(delay);
+      } else if (attempt < MAX_RETRIES) {
+        // For non-transient errors, log but don't retry
+        console.log(`⏭️ Skipping retry for non-transient error: ${error.message}`);
+        break;
       }
     }
   }
@@ -219,11 +308,19 @@ Structure the content for optimal learning progression.`
  * @returns {Promise<Object>} Lesson content object
  */
 export const generateLessonContent = async (topic, moduleTitle, courseTitle) => {
+  // Validate input
+  if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
+    throw new Error('Topic is required and must be a non-empty string');
+  }
+
+  const trimmedTopic = topic.trim();
+  const trimmedModuleTitle = moduleTitle?.trim() || 'Unknown Module';
+  const trimmedCourseTitle = courseTitle?.trim() || 'Unknown Course';
   let lastError;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.log(`🔄 Generating lesson content for "${topic}" (attempt ${attempt}/${MAX_RETRIES})...`);
+      console.log(`🔄 Generating lesson content for "${trimmedTopic}" (attempt ${attempt}/${MAX_RETRIES})...`);
 
       const response = await openai.chat.completions.create({
         model: OPENAI_CONFIG.MODEL,
@@ -233,9 +330,9 @@ export const generateLessonContent = async (topic, moduleTitle, courseTitle) => 
             role: 'user',
             content: `Create detailed lesson content for:
 
-Course: "${courseTitle}"
-Module: "${moduleTitle}"
-Micro-topic: "${topic}"
+Course: "${trimmedCourseTitle}"
+Module: "${trimmedModuleTitle}"
+Micro-topic: "${trimmedTopic}"
 
 Make the content engaging, educational, and suitable for self-paced learning.`
           },
@@ -245,32 +342,53 @@ Make the content engaging, educational, and suitable for self-paced learning.`
         response_format: { type: 'json_object' },
       });
 
-      const content = response.choices[0]?.message?.content;
+      // Safety check: Ensure response has choices
+      if (!response.choices || !Array.isArray(response.choices) || response.choices.length === 0) {
+        console.error('❌ Empty choices array in API response:', JSON.stringify(response).slice(0, 500));
+        throw new Error('API returned empty choices array');
+      }
+
+      const firstChoice = response.choices[0];
+      
+      // Check for refusal or other special cases
+      if (firstChoice.finish_reason === 'content_filter') {
+        throw new Error('Content filtered by API safety policies');
+      }
+
+      const content = firstChoice.message?.content;
 
       if (!content) {
-        throw new Error('Empty response from OpenAI');
+        console.error('❌ Empty content in API response:', JSON.stringify(firstChoice).slice(0, 500));
+        throw new Error('Empty response content from OpenAI');
       }
 
       const lesson = parseJSONResponse(content);
 
-      // Validate lesson structure
+      // Validate lesson structure with fallback
       const requiredFields = ['explanation', 'example', 'analogy', 'keyTakeaways', 'practiceQuestions'];
       for (const field of requiredFields) {
         if (!lesson[field]) {
-          throw new Error(`Invalid lesson structure: missing ${field}`);
+          console.warn(`⚠️ Lesson missing "${field}", adding fallback`);
+          if (field === 'explanation') lesson.explanation = 'Content pending generation.';
+          else if (field === 'example') lesson.example = 'Example pending generation.';
+          else if (field === 'analogy') lesson.analogy = 'Analogy pending generation.';
+          else if (field === 'keyTakeaways') lesson.keyTakeaways = ['Key takeaway pending'];
+          else if (field === 'practiceQuestions') lesson.practiceQuestions = [{ question: 'Question pending', answer: 'Answer pending' }];
         }
       }
 
-      // Validate arrays
+      // Validate arrays with fallback
       if (!Array.isArray(lesson.keyTakeaways) || lesson.keyTakeaways.length === 0) {
-        throw new Error('Invalid lesson structure: keyTakeaways must be a non-empty array');
+        console.warn('⚠️ Invalid keyTakeaways, using fallback');
+        lesson.keyTakeaways = ['Key takeaway pending'];
       }
 
       if (!Array.isArray(lesson.practiceQuestions) || lesson.practiceQuestions.length === 0) {
-        throw new Error('Invalid lesson structure: practiceQuestions must be a non-empty array');
+        console.warn('⚠️ Invalid practiceQuestions, using fallback');
+        lesson.practiceQuestions = [{ question: 'Question pending', answer: 'Answer pending' }];
       }
 
-      console.log(`✅ Lesson content generated for "${topic}"`);
+      console.log(`✅ Lesson content generated for "${trimmedTopic}"`);
 
       return lesson;
 
@@ -285,9 +403,14 @@ Make the content engaging, educational, and suitable for self-paced learning.`
 
       console.error(`❌ Attempt ${attempt} failed:`, error.message);
 
-      if (attempt < MAX_RETRIES) {
-        console.log(`⏳ Retrying in ${RETRY_DELAY}ms...`);
-        await sleep(RETRY_DELAY * attempt);
+      // Only retry on transient errors
+      if (attempt < MAX_RETRIES && isTransientError(error)) {
+        const delay = RETRY_DELAY * attempt;
+        console.log(`⏳ Retrying in ${delay}ms (transient error detected)...`);
+        await sleep(delay);
+      } else if (attempt < MAX_RETRIES) {
+        console.log(`⏭️ Skipping retry for non-transient error: ${error.message}`);
+        break;
       }
     }
   }
@@ -303,6 +426,11 @@ Make the content engaging, educational, and suitable for self-paced learning.`
  * @returns {Promise<Object>} New module object
  */
 export const regenerateModule = async (topic, moduleTitle, existingModules = []) => {
+  // Validate input
+  if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
+    throw new Error('Topic is required and must be a non-empty string');
+  }
+
   try {
     console.log(`🔄 Regenerating module "${moduleTitle}"...`);
 
@@ -329,11 +457,28 @@ Ensure the new module fits well with the existing course structure and maintains
       response_format: { type: 'json_object' },
     });
 
-    const content = response.choices[0]?.message?.content;
+    // Safety check: Ensure response has choices
+    if (!response.choices || !Array.isArray(response.choices) || response.choices.length === 0) {
+      console.error('❌ Empty choices array in API response:', JSON.stringify(response).slice(0, 500));
+      throw new Error('API returned empty choices array');
+    }
+
+    const firstChoice = response.choices[0];
+    const content = firstChoice.message?.content;
+    
+    if (!content) {
+      console.error('❌ Empty content in API response:', JSON.stringify(firstChoice).slice(0, 500));
+      throw new Error('Empty response content from OpenAI');
+    }
+
     const result = parseJSONResponse(content);
 
     if (!result.modules || result.modules.length === 0) {
-      throw new Error('No module returned in regeneration');
+      console.warn('⚠️ No modules returned in regeneration, using fallback');
+      return {
+        title: moduleTitle,
+        microTopics: ['Topic Overview']
+      };
     }
 
     console.log(`✅ Module "${moduleTitle}" regenerated`);

@@ -5,9 +5,9 @@
  * Shows lesson content, videos, and progress tracking.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
@@ -16,6 +16,7 @@ import Header from './Layout/Header';
 import Sidebar from './Layout/Sidebar';
 import LessonContent from './LessonContent';
 import { cn } from '@/lib/utils';
+import * as courseApi from '@/api/courseApi';
 
 const CourseViewer: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -27,11 +28,14 @@ const CourseViewer: React.FC = () => {
     clearError,
     generationStatus,
     pollGenerationStatus,
+    stopPolling,
   } = useCourse();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentModuleId, setCurrentModuleId] = useState<string>('');
   const [currentMicroTopicId, setCurrentMicroTopicId] = useState<string>('');
+  const [isContinuing, setIsContinuing] = useState(false);
+  const pollingStartedRef = useRef(false);
 
   // Load course on mount
   useEffect(() => {
@@ -40,11 +44,17 @@ const CourseViewer: React.FC = () => {
     }
   }, [courseId, loadCourse]);
 
-  // Start polling for generation status
+  // Start polling for generation status only once when not complete
   useEffect(() => {
-    if (courseId && generationStatus && !generationStatus.isComplete) {
+    if (courseId && generationStatus && !generationStatus.isComplete && !pollingStartedRef.current) {
+      pollingStartedRef.current = true;
       pollGenerationStatus(courseId);
     }
+    
+    // Cleanup: stop polling when component unmounts
+    return () => {
+      stopPolling();
+    };
   }, [courseId, generationStatus?.isComplete]);
 
   // Set initial micro-topic when course loads
@@ -70,6 +80,41 @@ const CourseViewer: React.FC = () => {
     if (courseId) {
       clearError();
       loadCourse(courseId);
+    }
+  };
+
+  const handleContinueGeneration = async () => {
+    if (!courseId) return;
+    
+    setIsContinuing(true);
+    try {
+      // Call the continue generation API
+      const response = await courseApi.continueCourseGeneration(courseId);
+      
+      if (response.success) {
+        // Connect to SSE for progress updates
+        courseApi.connectToCourseProgress(
+          courseId,
+          // Progress handler
+          (data) => {
+            console.log('Continue progress:', data);
+          },
+          // Complete handler
+          () => {
+            // Reload course when done
+            loadCourse(courseId);
+            setIsContinuing(false);
+          },
+          // Error handler
+          (data) => {
+            console.error('Continue error:', data.error);
+            setIsContinuing(false);
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Failed to continue generation:', error);
+      setIsContinuing(false);
     }
   };
 
@@ -157,9 +202,24 @@ const CourseViewer: React.FC = () => {
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Generating course content...</span>
-                  <span className="text-sm text-muted-foreground">
-                    {generationStatus.generatedCount} / {generationStatus.totalCount}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {generationStatus.generatedCount} / {generationStatus.totalCount}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleContinueGeneration}
+                      disabled={isContinuing}
+                    >
+                      {isContinuing ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <PlayCircle className="h-4 w-4 mr-1" />
+                      )}
+                      {isContinuing ? 'Continuing...' : 'Continue'}
+                    </Button>
+                  </div>
                 </div>
                 <Progress value={generationStatus.percentage} className="h-2" />
                 <p className="text-xs text-muted-foreground mt-2">

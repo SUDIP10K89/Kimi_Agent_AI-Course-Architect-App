@@ -2,14 +2,14 @@
  * Authentication Context
  *
  * Provides user/token state and helpers for login, signup, logout.
+ * Uses the unified API client from client.ts
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import axios from 'axios';
 import type { User } from '@/types';
 import * as authApi from '@/api/authApi';
-import * as courseApi from '@/api/courseApi';
+import { setAuthToken } from '@/api/client';
 
 interface AuthContextType {
   user: User | null;
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  // load from localStorage on mount
+  // Load from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem('auth');
@@ -46,21 +46,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const parsed = JSON.parse(stored) as { user: User; token: string };
         setUser(parsed.user);
         setToken(parsed.token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${parsed.token}`;
+        setAuthToken(parsed.token);
       }
     } catch (err) {
       console.warn('failed to load auth from storage', err);
     }
   }, []);
 
-  // persist any change
+  // Persist any change
   useEffect(() => {
     if (token && user) {
       localStorage.setItem('auth', JSON.stringify({ user, token }));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setAuthToken(token);
     } else {
       localStorage.removeItem('auth');
-      delete axios.defaults.headers.common['Authorization'];
+      setAuthToken(null);
     }
   }, [token, user]);
 
@@ -69,9 +69,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (response.success) {
       setUser(response.data.user);
       setToken(response.data.token);
-      // persist right away so interceptors can see it
       localStorage.setItem('auth', JSON.stringify({ user: response.data.user, token: response.data.token }));
-      courseApi.setAuthToken(response.data.token);
+      setAuthToken(response.data.token);
     } else {
       throw new Error(response.error || 'Login failed');
     }
@@ -83,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(response.data.user);
       setToken(response.data.token);
       localStorage.setItem('auth', JSON.stringify({ user: response.data.user, token: response.data.token }));
-      courseApi.setAuthToken(response.data.token);
+      setAuthToken(response.data.token);
     } else {
       throw new Error(response.error || 'Signup failed');
     }

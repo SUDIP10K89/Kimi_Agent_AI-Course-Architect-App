@@ -5,15 +5,16 @@
  * Shows loading state and error handling.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Sparkles, Loader2, BookOpen, Lightbulb, Code, Brain, Rocket } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Lightbulb, Code, Brain, Rocket, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import * as courseApi from '@/api/courseApi';
 
 const SUGGESTED_TOPICS = [
@@ -29,6 +30,16 @@ const CourseGenerator: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
+
+  // Cleanup SSE connection on unmount
+  useEffect(() => {
+    return () => {
+      // Any cleanup needed
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,15 +56,53 @@ const CourseGenerator: React.FC = () => {
 
     setIsGenerating(true);
     setError(null);
+    setProgress(0);
+    setProgressMessage('Starting course generation...');
+    setGeneratedCourseId(null);
 
     try {
       const response = await courseApi.generateCourse(topic.trim());
       
       if (response.success) {
-        // Navigate to the new course
-        navigate(`/courses/${response.data.courseId}`);
+        // Store the course ID and connect to SSE for progress updates
+        const courseId = response.data.courseId;
+        setGeneratedCourseId(courseId);
+        setProgressMessage('Course created! Connecting to progress updates...');
+        
+        // Connect to SSE for real-time progress
+        const cleanup = courseApi.connectToCourseProgress(
+          courseId,
+          // Progress handler
+          (data) => {
+            setProgress(data.progress);
+            setProgressMessage(data.message);
+          },
+          // Complete handler
+          (data) => {
+            setProgress(100);
+            setProgressMessage('Course generation complete!');
+            // Navigate to the course after a short delay
+            setTimeout(() => {
+              navigate(`/courses/${courseId}`);
+            }, 1500);
+          },
+          // Error handler
+          (data) => {
+            console.error('Generation error:', data.error);
+            setError(`Generation error: ${data.error}`);
+          }
+        );
+        
+        // Keep the connection open - user can navigate to course when ready
+        // For now, just navigate after a reasonable time even if not complete
+        setTimeout(() => {
+          if (progress < 100) {
+            navigate(`/courses/${courseId}`);
+          }
+        }, 5000); // Navigate after 5 seconds regardless
       } else {
         setError(response.error || 'Failed to generate course');
+        setIsGenerating(false);
       }
     } catch (err: unknown) {
       const apiError = err as { error?: string; message?: string };
@@ -62,7 +111,6 @@ const CourseGenerator: React.FC = () => {
       } else {
         setError(apiError.error || apiError.message || 'Failed to generate course. Please try again.');
       }
-    } finally {
       setIsGenerating(false);
     }
   };
@@ -146,14 +194,33 @@ const CourseGenerator: React.FC = () => {
             </div>
           </div>
 
-          {/* Generation Info */}
+          {/* Generation Info with Progress */}
           {isGenerating && (
-            <div className="text-center space-y-2 p-4 bg-muted rounded-lg">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-              <p className="text-sm font-medium">Creating your course...</p>
-              <p className="text-xs text-muted-foreground">
-                This may take a minute. We're generating the outline, lessons, and finding relevant videos.
+            <div className="space-y-4 p-4 bg-muted rounded-lg">
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm font-medium">Creating your course...</p>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <Progress value={progress} className="h-2" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{progressMessage}</span>
+                  <span>{progress}%</span>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground text-center">
+                This may take a few minutes. We're generating the outline, lessons, and finding relevant videos.
               </p>
+              
+              {generatedCourseId && (
+                <div className="text-xs text-center text-green-600 flex items-center justify-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Course created! Content is being generated in the background.
+                </div>
+              )}
             </div>
           )}
         </CardContent>

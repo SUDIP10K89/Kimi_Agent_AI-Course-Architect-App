@@ -8,6 +8,7 @@
 import Course from '../models/Course.js';
 import * as openaiService from './openaiService.js';
 import * as youtubeService from './youtubeService.js';
+import { sendProgress, sendError, sendComplete } from '../utils/sse.js';
 
 /**
  * Generate a complete course from a topic
@@ -105,20 +106,37 @@ export const generateCourseContent = async (courseId) => {
   try {
     console.log(`\n🔄 Starting content generation for course: ${courseId}\n`);
     
+    // Send initial progress
+    sendProgress(courseId, 0, 'Starting content generation...');
+    
     const course = await Course.findById(courseId);
     if (!course) {
       throw new Error('Course not found');
     }
     
+    // Calculate total items to process
+    let totalItems = 0;
+    course.modules.forEach(module => {
+      totalItems += module.microTopics.length; // Each micro-topic needs content + videos
+    });
+    
+    let processedItems = 0;
+    const updateProgress = (message) => {
+      const progress = Math.round((processedItems / totalItems) * 100);
+      sendProgress(courseId, progress, message);
+    };
+    
     // Process each module
     for (const module of course.modules) {
       console.log(`📖 Processing module: "${module.title}"`);
+      sendProgress(courseId, Math.round((processedItems / totalItems) * 100), `Processing module: ${module.title}`);
       
       // Process each micro-topic
       for (const microTopic of module.microTopics) {
         try {
           // Generate lesson content
           console.log(`   📝 Generating content for: "${microTopic.title}"`);
+          updateProgress(`Generating lesson: ${microTopic.title}`);
           
           const lessonContent = await openaiService.generateLessonContent(
             microTopic.title,
@@ -127,9 +145,12 @@ export const generateCourseContent = async (courseId) => {
           );
           
           microTopic.content = lessonContent;
+          processedItems++;
+          updateProgress(`Content generated for: ${microTopic.title}`);
           
           // Fetch relevant videos
           console.log(`   🎥 Fetching videos for: "${microTopic.title}"`);
+          updateProgress(`Finding videos for: ${microTopic.title}`);
           
           const videos = await youtubeService.searchEducationalVideos(
             course.topic,
@@ -137,6 +158,7 @@ export const generateCourseContent = async (courseId) => {
           );
           
           microTopic.videos = videos.slice(0, 3); // Max 3 videos per topic
+          processedItems++;
           
           // Save after each micro-topic (for progress tracking)
           await course.save();
@@ -146,15 +168,176 @@ export const generateCourseContent = async (courseId) => {
           
         } catch (error) {
           console.error(`   ❌ Error processing "${microTopic.title}":`, error.message);
+          sendError(courseId, `Failed to generate content for: ${microTopic.title}`);
           // Continue with next micro-topic
         }
       }
     }
     
+    sendComplete(courseId, { 
+      message: 'Course content generation complete',
+      courseId: course._id,
+      title: course.title
+    });
     console.log(`\n✅ Content generation completed for course: ${courseId}\n`);
     
   } catch (error) {
     console.error('❌ Content generation error:', error.message);
+    sendError(courseId, error.message);
+    throw error;
+  }
+};
+
+/**
+ * Continue/Resume content generation for a course
+ * Only generates content for micro-topics that don't have content yet
+ * @param {string} courseId - Course ID
+ */
+export const continueCourseContent = async (courseId) => {
+  try {
+    console.log(`\n🔄 Continuing content generation for course: ${courseId}\n`);
+    
+    // Send initial progress
+    sendProgress(courseId, 0, 'Resuming content generation...');
+    
+    const course = await Course.findById(courseId);
+    if (!course) {
+      throw new Error('Course not found');
+    }
+    
+    // Find micro-topics that need content
+    const topicsNeedingContent = [];
+    const topicsNeedingVideos = [];
+    
+    course.modules.forEach(module => {
+      module.microTopics.forEach(microTopic => {
+        // Check if content exists and has explanation
+        const hasContent = microTopic.content && microTopic.content.explanation;
+        // Check if videos exist and have at least one video
+        const hasVideos = microTopic.videos && Array.isArray(microTopic.videos) && microTopic.videos.length > 0;
+        
+        if (!hasContent) {
+          topicsNeedingContent.push({ microTopic, module });
+        } else if (!hasVideos) {
+          topicsNeedingVideos.push({ microTopic, module });
+        }
+      });
+    });
+    
+    const totalItems = topicsNeedingContent.length + topicsNeedingVideos.length;
+    
+    console.log(`📊 Found ${topicsNeedingContent.length} topics needing content and ${topicsNeedingVideos.length} needing videos`);
+    
+    // Debug: Log each topic's status
+    course.modules.forEach(module => {
+      module.microTopics.forEach(microTopic => {
+        const hasContent = microTopic.content && microTopic.content.explanation;
+        const hasVideos = microTopic.videos && Array.isArray(microTopic.videos) && microTopic.videos.length > 0;
+        console.log(`   - ${microTopic.title}: content=${!!hasContent}, videos=${!!hasVideos}`);
+      });
+    });
+    
+    if (totalItems === 0) {
+      sendComplete(courseId, { 
+        message: 'Course content is already complete!',
+        courseId: course._id,
+        title: course.title
+      });
+      console.log(`\n✅ Course content is already complete: ${courseId}\n`);
+      return { message: 'Course content is already complete', courseId };
+    }
+    
+    console.log(`📊 Found ${topicsNeedingContent.length} topics needing content and ${topicsNeedingVideos.length} needing videos`);
+    
+    let processedItems = 0;
+    const updateProgress = (message) => {
+      const progress = Math.round((processedItems / totalItems) * 100);
+      sendProgress(courseId, progress, message);
+    };
+    
+    // FIRST: Process topics that already have content but need videos
+    for (const { microTopic, module } of topicsNeedingVideos) {
+      try {
+        console.log(`   🎥 Fetching videos for: "${microTopic.title}"`);
+        updateProgress(`Finding videos for: ${microTopic.title}`);
+        
+        const videos = await youtubeService.searchEducationalVideos(
+          course.topic,
+          microTopic.title
+        );
+        
+        microTopic.videos = videos.slice(0, 3);
+        processedItems++;
+        
+        await course.save();
+        
+        // Small delay to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error) {
+        console.error(`   ❌ Error fetching videos for "${microTopic.title}":`, error.message);
+        sendError(courseId, `Failed to fetch videos for: ${microTopic.title}`);
+        // Continue with next
+      }
+    }
+    
+    // SECOND: Process topics that need content (generate both content and videos)
+    for (const { microTopic, module } of topicsNeedingContent) {
+      try {
+        console.log(`   📝 Generating content for: "${microTopic.title}"`);
+        updateProgress(`Generating lesson: ${microTopic.title}`);
+        
+        const lessonContent = await openaiService.generateLessonContent(
+          microTopic.title,
+          module.title,
+          course.title
+        );
+        
+        microTopic.content = lessonContent;
+        processedItems++;
+        updateProgress(`Content generated for: ${microTopic.title}`);
+        
+        // Generate videos for this topic immediately after content
+        console.log(`   🎥 Fetching videos for: "${microTopic.title}"`);
+        updateProgress(`Finding videos for: ${microTopic.title}`);
+        
+        const videos = await youtubeService.searchEducationalVideos(
+          course.topic,
+          microTopic.title
+        );
+        
+        microTopic.videos = videos.slice(0, 3);
+        processedItems++;
+        
+        await course.save();
+        
+        // Small delay to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error) {
+        console.error(`   ❌ Error generating content for "${microTopic.title}":`, error.message);
+        sendError(courseId, `Failed to generate content for: ${microTopic.title}`);
+        // Continue with next
+      }
+    }
+    
+    sendComplete(courseId, { 
+      message: 'Course content generation continued and completed',
+      courseId: course._id,
+      title: course.title
+    });
+    console.log(`\n✅ Content generation continued for course: ${courseId}\n`);
+    
+    return { 
+      message: 'Course content generation continued',
+      courseId,
+      processedItems,
+      totalItems 
+    };
+    
+  } catch (error) {
+    console.error('❌ Continue content generation error:', error.message);
+    sendError(courseId, error.message);
     throw error;
   }
 };

@@ -342,6 +342,53 @@ export const regenerateModule = async (req, res, next) => {
 };
 
 /**
+ * Continue/Resume content generation for a course
+ * POST /api/courses/:id/continue
+ */
+export const continueCourseGeneration = async (req, res, next) => {
+  try {
+    const { id: courseId } = req.params;
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Not authorized' });
+    }
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Course not found' });
+    }
+    
+    const ownerId = course.createdBy?._id || course.createdBy;
+    if (String(ownerId) !== String(user._id)) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    // Start content generation in background
+    const result = await courseService.continueCourseContent(courseId);
+
+    res.json({
+      success: true,
+      message: result.message,
+      data: {
+        courseId,
+        processedItems: result.processedItems,
+        totalItems: result.totalItems,
+      },
+    });
+
+  } catch (error) {
+    if (error.message === 'Course not found') {
+      return res.status(404).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+/**
  * Delete a course
  * DELETE /api/courses/:id
  */

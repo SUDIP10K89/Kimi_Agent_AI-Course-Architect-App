@@ -112,6 +112,11 @@ export const CourseProvider: React.FC<CourseProviderProps> = ({ children }) => {
 
   // Poll generation status
   const pollGenerationStatus = useCallback((courseId: string) => {
+    // Don't start if already complete or already polling
+    if (generationStatus?.isComplete) {
+      return;
+    }
+    
     // Clear existing interval
     if (pollInterval) {
       clearInterval(pollInterval);
@@ -135,16 +140,16 @@ export const CourseProvider: React.FC<CourseProviderProps> = ({ children }) => {
       } catch (err) {
         console.error('Polling error:', err);
       }
-    }, 3000); // Poll every 3 seconds
+    }, 5000); // Poll every 5 seconds
 
     setPollInterval(interval);
 
-    // Auto-stop after 5 minutes
+    // Auto-stop after 10 minutes
     setTimeout(() => {
       clearInterval(interval);
       setPollInterval(null);
-    }, 5 * 60 * 1000);
-  }, [pollInterval, loadCourse]);
+    }, 10 * 60 * 1000);
+  }, [pollInterval, loadCourse, generationStatus]);
 
   // Stop polling
   const stopPolling = useCallback(() => {

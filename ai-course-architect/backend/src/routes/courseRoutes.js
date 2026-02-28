@@ -54,6 +54,13 @@ router.get('/:id', protect, courseController.getCourseById);
 router.get('/:id/status', protect, courseController.getCourseStatus);
 
 /**
+ * @route   POST /api/courses/:id/continue
+ * @desc    Continue/Resume content generation for a course
+ * @access  Public
+ */
+router.post('/:id/continue', protect, courseController.continueCourseGeneration);
+
+/**
  * @route   POST /api/courses/:id/modules/:moduleId/topics/:topicId/generate
  * @desc    Generate content for a specific micro-topic
  * @access  Public
