@@ -75,6 +75,13 @@ router.post('/:id/modules/:moduleId/topics/:topicId/generate', protect, courseCo
 router.post('/:id/modules/:moduleId/topics/:topicId/complete', protect, courseController.completeMicroTopic);
 
 /**
+ * @route   DELETE /api/courses/:id/modules/:moduleId/topics/:topicId/complete
+ * @desc    Undo micro-topic completion (mark as incomplete)
+ * @access  Public
+ */
+router.delete('/:id/modules/:moduleId/topics/:topicId/complete', protect, courseController.uncompleteMicroTopic);
+
+/**
  * @route   POST /api/courses/:id/modules/:moduleId/regenerate
  * @desc    Regenerate a module
  * @access  Public

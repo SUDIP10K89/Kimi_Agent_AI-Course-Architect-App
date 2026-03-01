@@ -267,6 +267,20 @@ courseSchema.methods.completeMicroTopic = async function(moduleId, microTopicId)
 };
 
 /**
+ * Method to undo micro-topic completion (mark as incomplete)
+ */
+courseSchema.methods.uncompleteMicroTopic = async function(moduleId, microTopicId) {
+  const module = this.modules.id(moduleId);
+  if (!module) throw new Error('Module not found');
+  
+  const microTopic = module.microTopics.id(microTopicId);
+  if (!microTopic) throw new Error('Micro-topic not found');
+  
+  microTopic.isCompleted = false;
+  return this.save();
+};
+
+/**
  * Static method to get recent courses
  */
 courseSchema.statics.getRecent = function(limit = 10) {

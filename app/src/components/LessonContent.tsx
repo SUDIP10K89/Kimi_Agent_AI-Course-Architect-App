@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Lightbulb, BookOpen, HelpCircle, PlayCircle, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { CheckCircle2, Lightbulb, BookOpen, HelpCircle, PlayCircle, ChevronDown, ChevronUp, Check, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
 }) => {
   const { loadCourse } = useCourse();
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isUncompleting, setIsUncompleting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(!!microTopic?.isCompleted);
   const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
 
@@ -59,6 +60,22 @@ const LessonContent: React.FC<LessonContentProps> = ({
       console.error('Failed to mark as complete:', error);
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  const handleUncomplete = async () => {
+    if (!isCompleted) return;
+
+    setIsUncompleting(true);
+    try {
+      await courseApi.uncompleteMicroTopic(courseId, moduleId, microTopic._id);
+      setIsCompleted(false);
+      // Reload course to update progress
+      loadCourse(courseId);
+    } catch (error) {
+      console.error('Failed to undo completion:', error);
+    } finally {
+      setIsUncompleting(false);
     }
   };
 
@@ -104,20 +121,20 @@ const LessonContent: React.FC<LessonContentProps> = ({
           <h1 className="text-2xl md:text-3xl font-bold">{microTopic.title}</h1>
         </div>
         <Button
-          onClick={handleMarkComplete}
-          disabled={isCompleted || isCompleting}
+          onClick={isCompleted ? handleUncomplete : handleMarkComplete}
+          disabled={isCompleting || isUncompleting}
           variant={isCompleted ? 'outline' : 'default'}
-          className="self-start"
+          className={`self-start ${isCompleted ? 'bg-green-50 dark:bg-green-950 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900' : ''}`}
         >
-          {isCompleted ? (
-            <>
-              <Check className="h-4 w-4 mr-2" />
-              Completed
-            </>
-          ) : isCompleting ? (
+          {isCompleting || isUncompleting ? (
             <>
               <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Saving...
+              {isCompleting ? 'Saving...' : 'Undoing...'}
+            </>
+          ) : isCompleted ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Completed (Click to Undo)
             </>
           ) : (
             <>
@@ -286,21 +303,21 @@ const LessonContent: React.FC<LessonContentProps> = ({
       {/* Completion Button (Bottom) */}
       <div className="pt-8 pb-4">
         <Button
-          onClick={handleMarkComplete}
-          disabled={isCompleted || isCompleting}
+          onClick={isCompleted ? handleUncomplete : handleMarkComplete}
+          disabled={isCompleting || isUncompleting}
           variant={isCompleted ? 'outline' : 'default'}
           size="lg"
-          className="w-full"
+          className={`w-full ${isCompleted ? 'bg-green-50 dark:bg-green-950 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900' : ''}`}
         >
-          {isCompleted ? (
-            <>
-              <Check className="h-5 w-5 mr-2" />
-              Lesson Completed
-            </>
-          ) : isCompleting ? (
+          {isCompleting || isUncompleting ? (
             <>
               <div className="h-5 w-5 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Saving Progress...
+              {isCompleting ? 'Saving Progress...' : 'Undoing...'}
+            </>
+          ) : isCompleted ? (
+            <>
+              <CheckCircle2 className="h-5 w-5 mr-2" />
+              Completed (Click to Undo)
             </>
           ) : (
             <>

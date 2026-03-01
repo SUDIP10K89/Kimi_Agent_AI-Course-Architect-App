@@ -135,6 +135,10 @@ export const CourseProvider: React.FC<CourseProviderProps> = ({ children }) => {
             setPollInterval(null);
             // Reload course to get updated data
             loadCourse(courseId);
+          } else {
+            // Also reload course periodically to get latest microtopic content
+            // This helps show which microtopic is currently being generated
+            loadCourse(courseId);
           }
         }
       } catch (err) {

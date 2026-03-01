@@ -109,6 +109,18 @@ export const completeMicroTopic = async (
 };
 
 /**
+ * Undo micro-topic completion (mark as incomplete)
+ */
+export const uncompleteMicroTopic = async (
+  courseId: string,
+  moduleId: string,
+  topicId: string
+): Promise<ApiResponse<{ progress: { completedMicroTopics: number; totalMicroTopics: number; percentage: number } }>> => {
+  const response = await apiDelete<ApiResponse<{ progress: { completedMicroTopics: number; totalMicroTopics: number; percentage: number } }>>(`/courses/${courseId}/modules/${moduleId}/topics/${topicId}/complete`);
+  return response.data;
+};
+
+/**
  * Regenerate a module
  */
 export const regenerateModule = async (
@@ -182,6 +194,7 @@ export default {
   getCourseStatus,
   generateMicroTopicContent,
   completeMicroTopic,
+  uncompleteMicroTopic,
   regenerateModule,
   archiveCourse,
   deleteCourse,

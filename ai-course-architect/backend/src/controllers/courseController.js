@@ -308,6 +308,44 @@ export const completeMicroTopic = async (req, res, next) => {
 };
 
 /**
+ * Undo micro-topic completion (mark as incomplete)
+ * DELETE /api/courses/:id/modules/:moduleId/topics/:topicId/complete
+ */
+export const uncompleteMicroTopic = async (req, res, next) => {
+  try {
+    const { id, moduleId, topicId } = req.params;
+    const user = req.user;
+    if (!user) return res.status(401).json({ success: false, error: 'Not authorized' });
+
+    const course = await Course.findById(id);
+    if (!course) throw new Error('Course not found');
+    const ownerId = course.createdBy?._id || course.createdBy;
+    if (String(ownerId) !== String(user._id)) return res.status(403).json({ success: false, error: 'Forbidden' });
+
+    const updatedCourse = await courseService.uncompleteMicroTopic(id, moduleId, topicId);
+
+    res.json({
+      success: true,
+      message: 'Micro-topic marked as incomplete',
+      data: {
+        progress: updatedCourse.progress,
+      },
+    });
+
+  } catch (error) {
+    if (error.message === 'Course not found' ||
+      error.message === 'Module not found' ||
+      error.message === 'Micro-topic not found') {
+      return res.status(404).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+/**
  * Regenerate a module
  * POST /api/courses/:id/modules/:moduleId/regenerate
  */

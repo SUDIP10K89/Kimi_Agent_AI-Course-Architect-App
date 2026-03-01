@@ -37,6 +37,20 @@ const CourseViewer: React.FC = () => {
   const [isContinuing, setIsContinuing] = useState(false);
   const pollingStartedRef = useRef(false);
 
+  // Find the first microtopic that doesn't have content (currently being generated)
+  const currentGeneratingMicroTopic = React.useMemo(() => {
+    if (!currentCourse?.course || generationStatus?.isComplete) return null;
+    
+    for (const module of currentCourse.course.modules) {
+      for (const topic of module.microTopics) {
+        if (!topic.content || topic.videos.length === 0) {
+          return { title: topic.title, moduleTitle: module.title };
+        }
+      }
+    }
+    return null;
+  }, [currentCourse, generationStatus?.isComplete]);
+
   // Load course on mount
   useEffect(() => {
     if (courseId) {
@@ -222,9 +236,17 @@ const CourseViewer: React.FC = () => {
                   </div>
                 </div>
                 <Progress value={generationStatus.percentage} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-2">
-                  We're generating lessons and finding videos. You can start learning while we work!
-                </p>
+                {currentGeneratingMicroTopic && (
+                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                    <span className="animate-pulse">●</span>
+                    Currently generating: <span className="font-medium text-foreground">{currentGeneratingMicroTopic.title}</span>
+                  </p>
+                )}
+                {!currentGeneratingMicroTopic && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    We're generating lessons and finding videos. You can start learning while we work!
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -507,6 +507,25 @@ export const completeMicroTopic = async (courseId, moduleId, microTopicId) => {
 };
 
 /**
+ * Undo micro-topic completion (mark as incomplete)
+ * @param {string} courseId - Course ID
+ * @param {string} moduleId - Module ID
+ * @param {string} microTopicId - Micro-topic ID
+ * @returns {Promise<Object>} Updated course
+ */
+export const uncompleteMicroTopic = async (courseId, moduleId, microTopicId) => {
+  const course = await Course.findById(courseId);
+  
+  if (!course) {
+    throw new Error('Course not found');
+  }
+  
+  await course.uncompleteMicroTopic(moduleId, microTopicId);
+  
+  return course;
+};
+
+/**
  * Delete a course
  * @param {string} courseId - Course ID
  * @returns {Promise<boolean>} True if deleted
@@ -569,6 +588,7 @@ export default {
   regenerateModule,
   getCourseWithStatus,
   completeMicroTopic,
+  uncompleteMicroTopic,
   deleteCourse,
   archiveCourse,
   exportCourse,

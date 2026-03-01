@@ -104,6 +104,7 @@ export interface GenerationStatus {
   generatedCount: number;
   totalCount: number;
   percentage: number;
+  currentMessage?: string;
 }
 
 export interface CourseWithStatus {
