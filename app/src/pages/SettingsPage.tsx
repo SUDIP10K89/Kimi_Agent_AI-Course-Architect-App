@@ -1,27 +1,127 @@
 /**
  * Settings Page
  * 
- * User settings with account info, theme toggle, and logout.
+ * User settings with account info, theme toggle, AI configuration, and logout.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Moon, Sun, User, LogOut, Settings } from 'lucide-react';
+import { Moon, Sun, User, LogOut, Settings, Key, Globe, Cpu, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import Header from '@/components/Layout/Header';
+import * as settingsApi from '@/api/settingsApi';
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
+  // API Settings state
+  const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('gemini-2.5-flash');
+  const [baseUrl, setBaseUrl] = useState('https://generativelanguage.googleapis.com/v1beta/openai/');
+  const [useCustomProvider, setUseCustomProvider] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setIsLoading(true);
+      const response = await settingsApi.getSettings();
+      if (response.success && response.data) {
+        const { apiSettings } = response.data;
+        setModel(apiSettings.model);
+        setBaseUrl(apiSettings.baseUrl);
+        setUseCustomProvider(apiSettings.useCustomProvider);
+        setHasApiKey(apiSettings.hasApiKey);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setIsSaving(true);
+      setMessage(null);
+      
+      // Always send the apiKey field - backend will preserve existing if empty
+      const settingsPayload = {
+        apiKey: apiKey, // Can be empty string or actual key
+        model,
+        baseUrl,
+        useCustomProvider,
+      };
+      
+      console.log('📤 Frontend sending settings:', { 
+        model, 
+        baseUrl, 
+        useCustomProvider, 
+        hasApiKey: !!apiKey,
+        apiKeyLength: apiKey?.length 
+      });
+      
+      const response = await settingsApi.updateSettings(settingsPayload);
+
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Settings saved successfully!' });
+        setApiKey(''); // Clear the input after saving
+        setHasApiKey(true);
+      } else {
+        setMessage({ type: 'error', text: response.error || 'Failed to save settings' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to save settings' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!apiKey) {
+      setMessage({ type: 'error', text: 'Please enter an API key to test' });
+      return;
+    }
+
+    try {
+      setIsTesting(true);
+      setMessage(null);
+      
+      const response = await settingsApi.testSettings(apiKey, model, baseUrl);
+      
+      if (response.success) {
+        setMessage({ type: 'success', text: 'API connection successful!' });
+      } else {
+        setMessage({ type: 'error', text: response.error || 'API connection failed' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'API connection failed' });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   return (
@@ -103,6 +203,166 @@ const SettingsPage: React.FC = () => {
                     )}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Cpu className="h-5 w-5" />
+                  AI Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure your own AI provider for course generation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    {/* Enable Custom Provider Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="use-custom-provider" className="text-base">
+                          Use Custom AI Provider
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Enable to use your own API key for course generation
+                        </p>
+                      </div>
+                      <Switch
+                        id="use-custom-provider"
+                        checked={useCustomProvider}
+                        onCheckedChange={setUseCustomProvider}
+                      />
+                    </div>
+
+                    {useCustomProvider && (
+                      <>
+                        <Separator />
+
+                        {/* API Key */}
+                        <div className="space-y-2">
+                          <Label htmlFor="api-key" className="flex items-center gap-2">
+                            <Key className="h-4 w-4" />
+                            API Key
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="api-key"
+                              type={showApiKey ? 'text' : 'password'}
+                              placeholder={hasApiKey ? '••••••••••••••••' : 'Enter your API key'}
+                              value={apiKey}
+                              onChange={(e) => setApiKey(e.target.value)}
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowApiKey(!showApiKey)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {hasApiKey && !apiKey && (
+                            <p className="text-xs text-muted-foreground">
+                              You have an API key saved. Leave empty to keep it.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Model */}
+                        <div className="space-y-2">
+                          <Label htmlFor="model" className="flex items-center gap-2">
+                            <Cpu className="h-4 w-4" />
+                            Model
+                          </Label>
+                          <Input
+                            id="model"
+                            type="text"
+                            placeholder="gemini-2.5-flash"
+                            value={model}
+                            onChange={(e) => setModel(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Default: gemini-2.5-flash
+                          </p>
+                        </div>
+
+                        {/* Base URL */}
+                        <div className="space-y-2">
+                          <Label htmlFor="base-url" className="flex items-center gap-2">
+                            <Globe className="h-4 w-4" />
+                            Base URL
+                          </Label>
+                          <Input
+                            id="base-url"
+                            type="text"
+                            placeholder="https://generativelanguage.googleapis.com/v1beta/openai/"
+                            value={baseUrl}
+                            onChange={(e) => setBaseUrl(e.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Default: https://generativelanguage.googleapis.com/v1beta/openai/
+                          </p>
+                        </div>
+
+                        {/* Message Display */}
+                        {message && (
+                          <div className={`flex items-center gap-2 p-3 rounded-md ${
+                            message.type === 'success' 
+                              ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                              : 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                          }`}>
+                            {message.type === 'success' ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4" />
+                            )}
+                            <span className="text-sm">{message.text}</span>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={handleTestConnection}
+                            disabled={isTesting || !apiKey}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            {isTesting ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Testing...
+                              </>
+                            ) : (
+                              'Test Connection'
+                            )}
+                          </Button>
+                          <Button
+                            onClick={handleSaveSettings}
+                            disabled={isSaving}
+                            className="flex-1"
+                          >
+                            {isSaving ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              'Save Settings'
+                            )}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 

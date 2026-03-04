@@ -46,6 +46,8 @@ export const generateCourse = async (req, res, next) => {
     }
 
     const course = await courseService.generateCourse(trimmedTopic, user._id);
+    
+    console.log('🔍 generateCourse controller - Course created with ID:', course._id);
 
     res.status(201).json({
       success: true,
@@ -208,8 +210,14 @@ export const getCourseById = async (req, res, next) => {
 export const getCourseStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-
+    const user = req.user;
+    
+    console.log('🔍 getCourseStatus - Request params:', { id, userId: user?._id });
+    
     const result = await courseService.getCourseWithStatus(id);
+    
+    console.log('🔍 getCourseStatus - Course found:', !!result.course);
+    console.log('🔍 getCourseStatus - Generation status:', result.generationStatus);
 
     res.json({
       success: true,
@@ -221,6 +229,7 @@ export const getCourseStatus = async (req, res, next) => {
     });
 
   } catch (error) {
+    console.error('🔍 getCourseStatus - Error:', error.message);
     if (error.message === 'Course not found') {
       return res.status(404).json({
         success: false,

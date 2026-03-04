@@ -6,21 +6,61 @@
  */
 
 import Course from '../models/Course.js';
+import User from '../models/User.js';
 import * as openaiService from './openaiService.js';
 import * as youtubeService from './youtubeService.js';
 import { sendProgress, sendError, sendComplete } from '../utils/sse.js';
 
 /**
+ * Fetch user's API settings if they want to use custom provider
+ * @param {string} userId - User ID
+ * @returns {Promise<Object|null>} User API settings or null
+ */
+const getUserApiSettings = async (userId) => {
+  try {
+    const user = await User.findById(userId).select('+apiSettings.apiKey');
+    console.log('🔍 getUserApiSettings - User found:', !!user);
+    console.log('🔍 getUserApiSettings - apiSettings exists:', !!(user?.apiSettings));
+    console.log('🔍 getUserApiSettings - apiSettings object:', JSON.stringify(user?.apiSettings));
+    console.log('🔍 getUserApiSettings - useCustomProvider:', user?.apiSettings?.useCustomProvider);
+    console.log('🔍 getUserApiSettings - apiKey exists:', !!(user?.apiSettings?.apiKey));
+    
+    if (user && user.apiSettings && user.apiSettings.useCustomProvider && user.apiSettings.apiKey) {
+      console.log('🔍 getUserApiSettings - Returning custom settings');
+      return {
+        apiKey: user.apiSettings.apiKey,
+        model: user.apiSettings.model,
+        baseUrl: user.apiSettings.baseUrl,
+        useCustomProvider: user.apiSettings.useCustomProvider,
+      };
+    }
+    console.log('🔍 getUserApiSettings - Returning null (no custom settings)');
+    return null;
+  } catch (error) {
+    console.error('Error fetching user API settings:', error.message);
+    return null;
+  }
+};
+
+/**
  * Generate a complete course from a topic
  * @param {string} topic - The course topic
+ * @param {string} userId - User ID
  * @returns {Promise<Object>} Generated course document
  */
 export const generateCourse = async (topic, userId) => {
   try {
     console.log(`\n🚀 Starting course generation for: "${topic}" (user ${userId})\n`);
     
+    // Fetch user API settings
+    const userApiSettings = await getUserApiSettings(userId);
+    console.log(`🔑 User API settings:`, userApiSettings);
+    if (userApiSettings) {
+      console.log(`🔑 Using custom API provider: ${userApiSettings.baseUrl} with model ${userApiSettings.model}`);
+    }
+    
     // Step 1: Generate course outline using AI
-    const outline = await openaiService.generateCourseOutline(topic);
+    const outline = await openaiService.generateCourseOutline(topic, userApiSettings);
     
     // Step 2: Prepare course structure
     const courseData = {
@@ -106,13 +146,19 @@ export const generateCourseContent = async (courseId) => {
   try {
     console.log(`\n🔄 Starting content generation for course: ${courseId}\n`);
     
-    // Send initial progress
-    sendProgress(courseId, 0, 'Starting content generation...');
-    
+    // Get course and user settings
     const course = await Course.findById(courseId);
     if (!course) {
-      throw new Error('Course not found');
+      console.error(`❌ Course not found: ${courseId} - stopping content generation`);
+      sendError(courseId, 'Course not found - generation stopped');
+      return;
     }
+    
+    const userId = course.createdBy;
+    const userApiSettings = await getUserApiSettings(userId);
+    
+    // Send initial progress
+    sendProgress(courseId, 0, 'Starting content generation...');
     
     // Calculate total items to process
     let totalItems = 0;
@@ -141,7 +187,8 @@ export const generateCourseContent = async (courseId) => {
           const lessonContent = await openaiService.generateLessonContent(
             microTopic.title,
             module.title,
-            course.title
+            course.title,
+            userApiSettings
           );
           
           microTopic.content = lessonContent;
@@ -202,7 +249,9 @@ export const continueCourseContent = async (courseId) => {
     
     const course = await Course.findById(courseId);
     if (!course) {
-      throw new Error('Course not found');
+      console.error(`❌ Course not found: ${courseId} - stopping content generation`);
+      sendError(courseId, 'Course not found - generation stopped');
+      return;
     }
     
     // Find micro-topics that need content
@@ -290,7 +339,8 @@ export const continueCourseContent = async (courseId) => {
         const lessonContent = await openaiService.generateLessonContent(
           microTopic.title,
           module.title,
-          course.title
+          course.title,
+          userApiSettings
         );
         
         microTopic.content = lessonContent;
@@ -370,7 +420,8 @@ export const generateMicroTopicContent = async (courseId, moduleId, microTopicId
     const lessonContent = await openaiService.generateLessonContent(
       microTopic.title,
       module.title,
-      course.title
+      course.title,
+      userApiSettings
     );
     
     microTopic.content = lessonContent;
@@ -411,6 +462,10 @@ export const regenerateModule = async (courseId, moduleId) => {
       throw new Error('Module not found');
     }
     
+    // Get user API settings
+    const userId = course.createdBy;
+    const userApiSettings = await getUserApiSettings(userId);
+    
     // Get other module titles for context
     const otherModules = course.modules.filter(m => m._id.toString() !== moduleId);
     
@@ -418,7 +473,8 @@ export const regenerateModule = async (courseId, moduleId) => {
     const newModule = await openaiService.regenerateModule(
       course.topic,
       module.title,
-      otherModules
+      otherModules,
+      userApiSettings
     );
     
     // Update module
@@ -450,7 +506,10 @@ export const regenerateModule = async (courseId, moduleId) => {
  * @returns {Promise<Object>} Course with status
  */
 export const getCourseWithStatus = async (courseId) => {
+  console.log('🔍 getCourseWithStatus - Looking for course:', courseId);
   const course = await Course.findById(courseId);
+  console.log('🔍 getCourseWithStatus - Course found:', !!course);
+  console.log('🔍 getCourseWithStatus - Course title:', course?.title);
   
   if (!course) {
     throw new Error('Course not found');

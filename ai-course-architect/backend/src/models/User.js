@@ -28,6 +28,26 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false, // do not return password by default
     },
+    // User's custom API settings for AI providers
+    apiSettings: {
+      apiKey: {
+        type: String,
+        select: false, // don't return API key by default for security
+      },
+      model: {
+        type: String,
+        default: 'gemini-2.5-flash',
+      },
+      baseUrl: {
+        type: String,
+        default: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      },
+      // Flag to indicate if user wants to use their own API key
+      useCustomProvider: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   {
     timestamps: true,

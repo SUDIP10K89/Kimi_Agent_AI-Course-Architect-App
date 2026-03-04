@@ -22,6 +22,7 @@ import { notFoundHandler, globalErrorHandler, handleUnhandledRejection, handleUn
 // Routes
 import courseRoutes from './routes/courseRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 // Utils
 import { logInfo, logError } from './utils/logger.js';
@@ -105,6 +106,9 @@ app.use('/api/health', healthRoutes);
 // Authentication routes
 import authRoutes from './routes/authRoutes.js';
 app.use('/api/auth', authRoutes);
+
+// User settings routes
+app.use('/api/users', userRoutes);
 
 // Course routes with generation limiter for POST /generate
 app.use('/api/courses/generate', generationLimiter);

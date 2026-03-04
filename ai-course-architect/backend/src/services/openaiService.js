@@ -3,24 +3,75 @@
  * 
  * Handles all AI-powered content generation using OpenAI API.
  * Enforces structured JSON output for course outlines and lesson content.
+ * Supports both server-default and user-provided API configurations.
  */
 
 import OpenAI from 'openai';
 import { OPENAI_CONFIG } from '../config/env.js';
 
-// Initialize OpenAI client.  `OPENAI_CONFIG.BASE_URL` is optional, so we
-// only add it if the environment provided a value. This makes it easy to
-// switch between OpenAI's official endpoint and a proxy such as OpenRouter
-// without changing code.
-const clientOptions = {
-  apiKey: OPENAI_CONFIG.API_KEY,
+// Default client using server environment variables
+const createDefaultClient = () => {
+  const clientOptions = {
+    apiKey: OPENAI_CONFIG.API_KEY,
+  };
+
+  if (OPENAI_CONFIG.BASE_URL) {
+    clientOptions.baseURL = OPENAI_CONFIG.BASE_URL;
+  }
+
+  return new OpenAI(clientOptions);
 };
 
-if (OPENAI_CONFIG.BASE_URL) {
-  clientOptions.baseURL = OPENAI_CONFIG.BASE_URL;
-}
+// Create default client
+const defaultClient = createDefaultClient();
 
-const openai = new OpenAI(clientOptions);
+/**
+ * Create a custom OpenAI client with user-provided settings
+ * @param {string} apiKey - User's API key
+ * @param {string} model - Model name (defaults to user's setting or server default)
+ * @param {string} baseUrl - Base URL for the API
+ * @returns {OpenAI} OpenAI client instance
+ */
+export const createCustomClient = (apiKey, model, baseUrl) => {
+  const clientOptions = {
+    apiKey: apiKey,
+  };
+
+  if (baseUrl) {
+    clientOptions.baseURL = baseUrl;
+  }
+
+  return new OpenAI(clientOptions);
+};
+
+/**
+ * Get the appropriate OpenAI client based on user settings
+ * @param {Object} userApiSettings - User's API settings (optional)
+ * @returns {Object} - { client: OpenAI, model: string, shouldUseCustom: boolean }
+ */
+export const getOpenAIClient = (userApiSettings) => {
+  // Check if user has custom API settings and wants to use them
+  if (userApiSettings && userApiSettings.useCustomProvider && userApiSettings.apiKey) {
+    console.log('🎯 Using custom API client:', userApiSettings.baseUrl, userApiSettings.model);
+    return {
+      client: createCustomClient(
+        userApiSettings.apiKey,
+        userApiSettings.model || OPENAI_CONFIG.MODEL,
+        userApiSettings.baseUrl || OPENAI_CONFIG.BASE_URL
+      ),
+      model: userApiSettings.model || OPENAI_CONFIG.MODEL,
+      shouldUseCustom: true,
+    };
+  }
+
+  // Fall back to default client
+  console.log('🎯 Using default API client:', OPENAI_CONFIG.BASE_URL, OPENAI_CONFIG.MODEL);
+  return {
+    client: defaultClient,
+    model: OPENAI_CONFIG.MODEL,
+    shouldUseCustom: false,
+  };
+};
 
 
 /**
@@ -172,9 +223,13 @@ const parseJSONResponse = (content) => {
 /**
  * Generate course outline from topic
  * @param {string} topic - The course topic
+ * @param {Object} userApiSettings - User's API settings (optional)
  * @returns {Promise<Object>} Course outline object
  */
-export const generateCourseOutline = async (topic) => {
+export const generateCourseOutline = async (topic, userApiSettings = null) => {
+  // Get the appropriate client based on user settings
+  const { client, model } = getOpenAIClient(userApiSettings);
+  
   // Validate input
   if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
     throw new Error('Topic is required and must be a non-empty string');
@@ -187,8 +242,10 @@ export const generateCourseOutline = async (topic) => {
     try {
       console.log(`🔄 Generating course outline for "${trimmedTopic}" (attempt ${attempt}/${MAX_RETRIES})...`);
 
-      const response = await openai.chat.completions.create({
-        model: OPENAI_CONFIG.MODEL,
+      console.log(`📡 Making API call with model: ${model}`);
+      
+      const response = await client.chat.completions.create({
+        model: model,
         messages: [
           { role: 'system', content: OUTLINE_SYSTEM_PROMPT },
           {
@@ -305,9 +362,13 @@ Structure the content for optimal learning progression.`
  * @param {string} topic - The micro-topic title
  * @param {string} moduleTitle - Parent module title (for context)
  * @param {string} courseTitle - Parent course title (for context)
+ * @param {Object} userApiSettings - User's API settings (optional)
  * @returns {Promise<Object>} Lesson content object
  */
-export const generateLessonContent = async (topic, moduleTitle, courseTitle) => {
+export const generateLessonContent = async (topic, moduleTitle, courseTitle, userApiSettings = null) => {
+  // Get the appropriate client based on user settings
+  const { client, model } = getOpenAIClient(userApiSettings);
+  
   // Validate input
   if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
     throw new Error('Topic is required and must be a non-empty string');
@@ -322,8 +383,8 @@ export const generateLessonContent = async (topic, moduleTitle, courseTitle) => 
     try {
       console.log(`🔄 Generating lesson content for "${trimmedTopic}" (attempt ${attempt}/${MAX_RETRIES})...`);
 
-      const response = await openai.chat.completions.create({
-        model: OPENAI_CONFIG.MODEL,
+      const response = await client.chat.completions.create({
+        model: model,
         messages: [
           { role: 'system', content: LESSON_SYSTEM_PROMPT },
           {
@@ -423,9 +484,13 @@ Make the content engaging, educational, and suitable for self-paced learning.`
  * @param {string} topic - Course topic
  * @param {string} moduleTitle - Module to regenerate
  * @param {Array} existingModules - Other existing modules (for context)
+ * @param {Object} userApiSettings - User's API settings (optional)
  * @returns {Promise<Object>} New module object
  */
-export const regenerateModule = async (topic, moduleTitle, existingModules = []) => {
+export const regenerateModule = async (topic, moduleTitle, existingModules = [], userApiSettings = null) => {
+  // Get the appropriate client based on user settings
+  const { client, model } = getOpenAIClient(userApiSettings);
+  
   // Validate input
   if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
     throw new Error('Topic is required and must be a non-empty string');
@@ -438,8 +503,8 @@ export const regenerateModule = async (topic, moduleTitle, existingModules = [])
       ? `\n\nContext - Other modules in this course:\n${existingModules.map(m => `- ${m.title}`).join('\n')}`
       : '';
 
-    const response = await openai.chat.completions.create({
-      model: OPENAI_CONFIG.MODEL,
+    const response = await client.chat.completions.create({
+      model: model,
       messages: [
         {
           role: 'system',
@@ -497,7 +562,7 @@ Ensure the new module fits well with the existing course structure and maintains
  */
 export const checkOpenAIHealth = async () => {
   try {
-    await openai.models.list();
+    await defaultClient.models.list();
     return true;
   } catch (error) {
     console.error('OpenAI health check failed:', error.message);

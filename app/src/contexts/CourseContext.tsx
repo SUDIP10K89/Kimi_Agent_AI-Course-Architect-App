@@ -126,6 +126,16 @@ export const CourseProvider: React.FC<CourseProviderProps> = ({ children }) => {
     const interval = setInterval(async () => {
       try {
         const response = await courseApi.getCourseStatus(courseId);
+        
+        // Stop polling if course not found (404)
+        if (!response.success && response.error?.includes('not found')) {
+          console.error('Course not found - stopping polling');
+          clearInterval(interval);
+          setPollInterval(null);
+          setError('Course not found');
+          return;
+        }
+        
         if (response.success) {
           setGenerationStatus(response.data.generationStatus);
 
@@ -143,8 +153,11 @@ export const CourseProvider: React.FC<CourseProviderProps> = ({ children }) => {
         }
       } catch (err) {
         console.error('Polling error:', err);
+        // Stop polling on error to prevent infinite retries
+        clearInterval(interval);
+        setPollInterval(null);
       }
-    }, 10000); // Poll every 5 seconds
+    }, 10000); // Poll every 10 seconds
 
     setPollInterval(interval);
 
