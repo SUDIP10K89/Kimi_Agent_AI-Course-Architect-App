@@ -24,7 +24,7 @@ export const SERVER_CONFIG = {
  * Database configuration
  */
 export const DB_CONFIG = {
-  MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-course-architect',
+  MONGODB_URI: process.env.MONGODB_URI,
 };
 
 /**
@@ -32,11 +32,11 @@ export const DB_CONFIG = {
  */
 export const OPENAI_CONFIG = {
   API_KEY: process.env.OPENAI_API_KEY,
-  MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  MODEL: process.env.OPENAI_MODEL,
   MAX_TOKENS: 4000,
   TEMPERATURE: 0.7,
   // Optional override for non-standard endpoints (e.g. OpenRouter)
-  BASE_URL: process.env.OPENAI_BASE_URL || '',
+  BASE_URL: process.env.OPENAI_BASE_URL ,
 };
 
 /**

@@ -28,7 +28,7 @@ export const standardLimiter = rateLimit({
   },
   skip: (req) => {
     // Skip rate limiting for health checks
-    return req.path === '/api/health' || req.path === '/api/health/detailed';
+    return req.path === '/api/health' || req.path === '/api/health/detailed'||req.path.includes('/status');
   },
 });
 

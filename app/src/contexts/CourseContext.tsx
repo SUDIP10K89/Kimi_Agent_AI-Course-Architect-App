@@ -144,7 +144,7 @@ export const CourseProvider: React.FC<CourseProviderProps> = ({ children }) => {
       } catch (err) {
         console.error('Polling error:', err);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 10000); // Poll every 5 seconds
 
     setPollInterval(interval);
 
