@@ -192,8 +192,16 @@ const courseSchema = new mongoose.Schema({
       type: Number,
       default: 1,
     },
+    generationFailed: {
+      type: Boolean,
+      default: false,
+    },
+    generationFailedReason: {
+      type: String,
+      default: null,
+    },
   },
-}, { 
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -213,7 +221,7 @@ courseSchema.index({ isArchived: 1 });
 /**
  * Virtual property to get course status
  */
-courseSchema.virtual('status').get(function() {
+courseSchema.virtual('status').get(function () {
   if (this.progress.percentage === 0) return 'not-started';
   if (this.progress.percentage === 100) return 'completed';
   return 'in-progress';
@@ -222,32 +230,32 @@ courseSchema.virtual('status').get(function() {
 /**
  * Pre-save middleware to calculate progress
  */
-courseSchema.pre('save', function(next) {
+courseSchema.pre('save', function (next) {
   if (this.modules && this.modules.length > 0) {
     let totalMicroTopics = 0;
     let completedMicroTopics = 0;
-    
+
     this.modules.forEach((module) => {
       if (module.microTopics) {
         totalMicroTopics += module.microTopics.length;
         completedMicroTopics += module.microTopics.filter(mt => mt.isCompleted).length;
       }
     });
-    
+
     this.progress.totalMicroTopics = totalMicroTopics;
     this.progress.completedMicroTopics = completedMicroTopics;
-    this.progress.percentage = totalMicroTopics > 0 
-      ? Math.round((completedMicroTopics / totalMicroTopics) * 100) 
+    this.progress.percentage = totalMicroTopics > 0
+      ? Math.round((completedMicroTopics / totalMicroTopics) * 100)
       : 0;
   }
-  
+
   next();
 });
 
 /**
  * Method to update last accessed timestamp
  */
-courseSchema.methods.updateLastAccessed = async function() {
+courseSchema.methods.updateLastAccessed = async function () {
   this.metadata.lastAccessed = new Date();
   return this.save({ validateBeforeSave: false });
 };
@@ -255,13 +263,13 @@ courseSchema.methods.updateLastAccessed = async function() {
 /**
  * Method to mark micro-topic as complete
  */
-courseSchema.methods.completeMicroTopic = async function(moduleId, microTopicId) {
+courseSchema.methods.completeMicroTopic = async function (moduleId, microTopicId) {
   const module = this.modules.id(moduleId);
   if (!module) throw new Error('Module not found');
-  
+
   const microTopic = module.microTopics.id(microTopicId);
   if (!microTopic) throw new Error('Micro-topic not found');
-  
+
   microTopic.isCompleted = true;
   return this.save();
 };
@@ -269,13 +277,13 @@ courseSchema.methods.completeMicroTopic = async function(moduleId, microTopicId)
 /**
  * Method to undo micro-topic completion (mark as incomplete)
  */
-courseSchema.methods.uncompleteMicroTopic = async function(moduleId, microTopicId) {
+courseSchema.methods.uncompleteMicroTopic = async function (moduleId, microTopicId) {
   const module = this.modules.id(moduleId);
   if (!module) throw new Error('Module not found');
-  
+
   const microTopic = module.microTopics.id(microTopicId);
   if (!microTopic) throw new Error('Micro-topic not found');
-  
+
   microTopic.isCompleted = false;
   return this.save();
 };
@@ -283,7 +291,7 @@ courseSchema.methods.uncompleteMicroTopic = async function(moduleId, microTopicI
 /**
  * Static method to get recent courses
  */
-courseSchema.statics.getRecent = function(limit = 10) {
+courseSchema.statics.getRecent = function (limit = 10) {
   return this.find({ isArchived: false })
     .sort({ 'metadata.lastAccessed': -1 })
     .limit(limit)
@@ -293,7 +301,7 @@ courseSchema.statics.getRecent = function(limit = 10) {
 /**
  * Static method to search courses
  */
-courseSchema.statics.search = function(query) {
+courseSchema.statics.search = function (query) {
   return this.find({
     isArchived: false,
     $or: [

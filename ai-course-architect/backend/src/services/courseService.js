@@ -134,12 +134,17 @@ export const generateCourse = async (topic, userId) => {
 
     // Step 5: Start async content generation
     // We don't await this - it runs in background
-    generateCourseContent(course._id).catch(error => {
+    generateCourseContent(course._id).catch(async error => {
       console.error('Background content generation failed:', error.message);
       // Send SSE error to frontend so it can stop polling and show error
       sendError(course._id, `Content generation failed: ${error.message}`);
       if (error.code === 'OPENAI_QUOTA_EXCEEDED') {
         sendWarning(course._id, error.message);
+        // Mark generation as failed so frontend knows to stop polling
+        await Course.updateOne(
+          { _id: course._id },
+          { $set: { 'metadata.generationFailed': true, 'metadata.generationFailedReason': error.message } }
+        );
       }
     });
 
@@ -278,6 +283,11 @@ export const generateCourseContent = async (courseId) => {
             console.error('❌ OpenAI quota exceeded — stopping content generation');
             sendWarning(courseId, error.message);
             sendError(courseId, 'Content generation stopped: OpenAI quota exceeded. Please check your billing at platform.openai.com.');
+            // Mark generation as failed so frontend knows to stop polling
+            await Course.updateOne(
+              { _id: courseId },
+              { $set: { 'metadata.generationFailed': true, 'metadata.generationFailedReason': error.message } }
+            );
             return; // Stop generation entirely — quota is exhausted
           }
           if (error.code === 'OPENAI_TOKEN_LIMIT') {
@@ -688,6 +698,8 @@ export const getCourseWithStatus = async (courseId) => {
     percentage: totalMicroTopics > 0
       ? Math.round((generatedMicroTopics / totalMicroTopics) * 100)
       : 0,
+    failed: course.metadata?.generationFailed || false,
+    failedReason: course.metadata?.generationFailedReason || null,
   };
 
   return {

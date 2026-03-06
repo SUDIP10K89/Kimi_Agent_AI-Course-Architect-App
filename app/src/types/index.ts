@@ -105,6 +105,8 @@ export interface GenerationStatus {
   totalCount: number;
   percentage: number;
   currentMessage?: string;
+  failed?: boolean;
+  failedReason?: string | null;
 }
 
 export interface CourseWithStatus {

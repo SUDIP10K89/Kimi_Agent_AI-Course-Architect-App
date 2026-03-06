@@ -59,18 +59,23 @@ const CourseViewer: React.FC = () => {
     }
   }, [courseId, loadCourse]);
 
-  // Start polling for generation status only once when not complete
+  // Start polling for generation status only once when not complete and not failed
   useEffect(() => {
-    if (courseId && generationStatus && !generationStatus.isComplete && !pollingStartedRef.current) {
+    if (courseId && generationStatus && !generationStatus.isComplete && !generationStatus.failed && !pollingStartedRef.current) {
       pollingStartedRef.current = true;
       pollGenerationStatus(courseId);
+    }
+
+    // Stop polling if generation has failed
+    if (generationStatus?.failed) {
+      stopPolling();
     }
 
     // Cleanup: stop polling when component unmounts
     return () => {
       stopPolling();
     };
-  }, [courseId, generationStatus?.isComplete]);
+  }, [courseId, generationStatus?.isComplete, generationStatus?.failed]);
 
   // Set initial micro-topic when course loads
   useEffect(() => {
@@ -250,9 +255,19 @@ const CourseViewer: React.FC = () => {
                     Currently generating: <span className="font-medium text-foreground">{currentGeneratingMicroTopic.title}</span>
                   </p>
                 )}
-                {!currentGeneratingMicroTopic && (
+                {!currentGeneratingMicroTopic && generationStatus?.failed && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-medium">
+                    ⚠️ Generation stopped due to error. Click "Continue" to resume.
+                  </p>
+                )}
+                {!currentGeneratingMicroTopic && !generationStatus?.isComplete && !generationStatus?.failed && (
                   <p className="text-xs text-muted-foreground mt-2">
                     We're generating lessons and finding videos. You can start learning while we work!
+                  </p>
+                )}
+                {!currentGeneratingMicroTopic && generationStatus?.isComplete && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 font-medium">
+                    ✓ Course generation complete. Start learning now!
                   </p>
                 )}
               </div>
