@@ -10,6 +10,8 @@
 
 > An AI-powered application that generates comprehensive courses from any topic. Courses include structured modules, micro-topics, AI-generated lesson content (explanations, examples, analogies, and practice questions), and relevant YouTube videos.
 
+LIVE : https://coursexai.vercel.app
+
 ## 🚀 Features
 
 ### Course Generation
