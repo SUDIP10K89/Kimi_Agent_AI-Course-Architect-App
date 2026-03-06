@@ -448,6 +448,15 @@ Make the content engaging, educational, and suitable for self-paced learning.`
         console.warn('⚠️ Invalid practiceQuestions, using fallback');
         lesson.practiceQuestions = [{ question: 'Question pending', answer: 'Answer pending' }];
       }
+      
+      // Validate each practice question has required fields
+      lesson.practiceQuestions = lesson.practiceQuestions.map((pq, index) => {
+        if (!pq.question || !pq.answer) {
+          console.warn(`⚠️ Practice question ${index} missing question or answer, using fallback`);
+          return { question: pq.question || 'Question pending', answer: pq.answer || 'Answer pending' };
+        }
+        return pq;
+      });
 
       console.log(`✅ Lesson content generated for "${trimmedTopic}"`);
 

@@ -254,6 +254,10 @@ export const continueCourseContent = async (courseId) => {
       return;
     }
     
+    // Get user API settings
+    const userId = course.createdBy;
+    const userApiSettings = await getUserApiSettings(userId);
+    
     // Find micro-topics that need content
     const topicsNeedingContent = [];
     const topicsNeedingVideos = [];
