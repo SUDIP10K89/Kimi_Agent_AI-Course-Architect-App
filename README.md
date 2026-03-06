@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react" alt="React">
   <img src="https://img.shields.io/badge/TypeScript-5.9-blue?style=for-the-badge&logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/MongoDB-%234ea94b?style=for-the-badge&logo=mongodb" alt="MongoDB">
-  <img src="https://img.shields.io/badge/OpenAI-GPT--4-yellow?style=for-the-badge&logo=openai" alt="OpenAI">
+  <img src="https://img.shields.io/badge/OpenAI-SDK-yellow?style=for-the-badge&logo=openai" alt="OpenAI">
 </p>
 
 > An AI-powered application that generates comprehensive courses from any topic. Courses include structured modules, micro-topics, AI-generated lesson content (explanations, examples, analogies, and practice questions), and relevant YouTube videos.
