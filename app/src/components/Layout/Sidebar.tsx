@@ -92,7 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       >
         {/* Course Header */}
-        <div className="p-4 border-b border-border/50">
+        <div className="p-4 border-b border-border/50 mt-20 ">
           <h2 className="font-semibold text-sm line-clamp-2" title={course.title}>
             {course.title}
           </h2>
