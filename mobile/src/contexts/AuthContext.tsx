@@ -4,7 +4,7 @@
  * Manages authentication state including login, signup, logout, and token management.
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User, LoginForm, SignupForm, AuthResponse } from '@/types';
 import * as authApi from '@/api/authApi';
@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (form: LoginForm) => Promise<void>;
   signup: (form: SignupForm) => Promise<void>;
   logout: () => Promise<void>;
+  registerLogoutCallback: (callback: () => void | Promise<void>) => void;
   error: string | null;
 }
 
@@ -29,6 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const logoutCallbacksRef = useRef<Array<() => void | Promise<void>>>([]);
 
   // Load auth from storage on mount
   useEffect(() => {
@@ -106,6 +108,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     try {
+      // Call all registered logout callbacks
+      await Promise.all(logoutCallbacksRef.current.map(callback => callback()));
+      logoutCallbacksRef.current = [];
       await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
       setUser(null);
       setToken(null);
@@ -113,6 +118,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Error logging out:', error);
     }
   };
+
+  const registerLogoutCallback = useCallback((callback: () => void | Promise<void>) => {
+    logoutCallbacksRef.current.push(callback);
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -124,6 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         signup,
         logout,
+        registerLogoutCallback,
         error,
       }}
     >

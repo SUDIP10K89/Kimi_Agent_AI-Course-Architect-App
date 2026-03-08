@@ -82,6 +82,24 @@ export const continueCourseGeneration = async (
   return response.data;
 };
 
+export const retryCourseGeneration = async (
+  courseId: string
+): Promise<ApiResponse<{ courseId: string; generationStatus: GenerationStatus }>> => {
+  const response = await apiPost<ApiResponse<{ courseId: string; generationStatus: GenerationStatus }>>(
+    `/courses/${courseId}/retry`
+  );
+  return response.data;
+};
+
+export const resumeCourseGeneration = async (
+  courseId: string
+): Promise<ApiResponse<{ courseId: string; generationStatus: GenerationStatus }>> => {
+  const response = await apiPost<ApiResponse<{ courseId: string; generationStatus: GenerationStatus }>>(
+    `/courses/${courseId}/resume`
+  );
+  return response.data;
+};
+
 export const generateMicroTopicContent = async (
   courseId: string,
   moduleId: string,

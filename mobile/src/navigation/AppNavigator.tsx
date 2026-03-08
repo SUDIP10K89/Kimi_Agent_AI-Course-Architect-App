@@ -5,10 +5,11 @@
  */
 
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Home, BookOpen, Settings } from 'lucide-react-native';
 
@@ -45,15 +46,19 @@ const AuthNavigator: React.FC = () => {
 
 // Home Stack Navigator
 const HomeNavigator: React.FC = () => {
+  const { colors } = useTheme();
+
   return (
     <HomeStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: '#333',
+        headerTintColor: colors.text,
+        headerShadowVisible: false,
         headerTitleStyle: {
           fontWeight: '600',
+          color: colors.text,
         },
       }}
     >
@@ -78,15 +83,19 @@ const HomeNavigator: React.FC = () => {
 
 // Courses Stack Navigator
 const CoursesNavigator: React.FC = () => {
+  const { colors } = useTheme();
+
   return (
     <CoursesStack.Navigator
       screenOptions={{
         headerStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: colors.surface,
         },
-        headerTintColor: '#333',
+        headerTintColor: colors.text,
+        headerShadowVisible: false,
         headerTitleStyle: {
           fontWeight: '600',
+          color: colors.text,
         },
       }}
     >
@@ -111,15 +120,19 @@ const CoursesNavigator: React.FC = () => {
 
 // Main Tab Navigator (when logged in)
 const MainNavigator: React.FC = () => {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: '#6366f1',
-        tabBarInactiveTintColor: '#9ca3af',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           paddingBottom: 5,
           paddingTop: 5,
           height: 60,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -164,17 +177,45 @@ const MainNavigator: React.FC = () => {
 // Root Navigator
 const AppNavigator: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  const { theme, colors, isLoading: isThemeLoading } = useTheme();
 
-  if (isLoading) {
+  if (isLoading || isThemeLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
+  const navigationTheme =
+    theme === 'dark'
+      ? {
+          ...DarkTheme,
+          colors: {
+            ...DarkTheme.colors,
+            primary: colors.primary,
+            background: colors.background,
+            card: colors.surface,
+            text: colors.text,
+            border: colors.border,
+            notification: colors.primary,
+          },
+        }
+      : {
+          ...DefaultTheme,
+          colors: {
+            ...DefaultTheme.colors,
+            primary: colors.primary,
+            background: colors.background,
+            card: colors.surface,
+            text: colors.text,
+            border: colors.border,
+            notification: colors.primary,
+          },
+        };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainNavigator} />
@@ -191,7 +232,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
 });
 

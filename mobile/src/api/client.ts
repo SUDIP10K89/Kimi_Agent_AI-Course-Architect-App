@@ -63,6 +63,13 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 120000,
 });
 
+// Logout callback for 401 handling
+let logoutCallback: (() => void | Promise<void>) | null = null;
+
+export const registerLogoutCallback = (callback: () => void | Promise<void>) => {
+  logoutCallback = callback;
+};
+
 apiClient.interceptors.request.use(
   async (config) => {
     try {
@@ -92,6 +99,10 @@ apiClient.interceptors.response.use(
         try {
           const AsyncStorage = require('@react-native-async-storage/async-storage').default;
           await AsyncStorage.removeItem('auth');
+          // Call the logout callback to clear AuthContext state
+          if (logoutCallback) {
+            await logoutCallback();
+          }
         } catch (storageError) {
           console.log('Error clearing auth state:', storageError);
         }

@@ -17,6 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import { useCourse } from '@/contexts/CourseContext';
+import { GenerationProgress, LessonStatusIndicator, ModuleProgress } from '@/components';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { 
@@ -29,9 +30,10 @@ import {
   Circle,
   Trash2,
   RefreshCw,
+  CloudOff,
 } from 'lucide-react-native';
 import type { HomeStackParamList, CoursesStackParamList } from '@/navigation/types';
-import type { MicroTopic } from '@/types';
+import type { MicroTopic, LessonGenerationStatus, Module } from '@/types';
 
 type CourseDetailRouteProp = RouteProp<HomeStackParamList | CoursesStackParamList, 'CourseDetail'>;
 type CourseDetailNavigationProp = NativeStackNavigationProp<HomeStackParamList | CoursesStackParamList, 'CourseDetail'>;
@@ -50,6 +52,7 @@ const CourseDetailScreen: React.FC = () => {
     generationStatus,
     pollGenerationStatus,
     stopPolling,
+    syncState,
   } = useCourse();
   
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
@@ -86,6 +89,40 @@ const CourseDetailScreen: React.FC = () => {
     });
   };
 
+  const getLessonStatus = (microTopicId: string): LessonGenerationStatus | undefined => {
+    return generationStatus?.lessons?.find(l => l.lessonId === microTopicId);
+  };
+
+  const renderLessonStatus = (microTopic: MicroTopic, moduleId: string) => {
+    const lessonStatus = getLessonStatus(microTopic._id);
+    
+    if (lessonStatus) {
+      return (
+        <LessonStatusIndicator status={lessonStatus.status} />
+      );
+    }
+    
+    if (microTopic.content) {
+      return (
+        <View style={styles.microTopicIcons}>
+          {microTopic.content.keyTakeaways.length > 0 && (
+            <BookOpen size={14} color="#6b7280" />
+          )}
+          {microTopic.videos.length > 0 && (
+            <PlayCircle size={14} color="#ec4899" />
+          )}
+        </View>
+      );
+    }
+    
+    return (
+      <View style={styles.generatingBadge}>
+        <RefreshCw size={12} color="#6366f1" />
+        <Text style={styles.generatingText}>Generating...</Text>
+      </View>
+    );
+  };
+
   const handleLessonPress = (moduleId: string, microTopic: MicroTopic) => {
     // Check if content is ready
     if (!microTopic.content || microTopic.videos.length === 0) {
@@ -102,6 +139,10 @@ const CourseDetailScreen: React.FC = () => {
 
   const handleToggleComplete = async (moduleId: string, microTopic: MicroTopic) => {
     await updateProgress(courseId, moduleId, microTopic._id, !microTopic.isCompleted);
+  };
+
+  const getModuleLessons = (module: Module): LessonGenerationStatus[] => {
+    return generationStatus?.lessons?.filter((lesson) => lesson.moduleId === module._id) || [];
   };
 
   const handleDeleteCourse = () => {
@@ -154,6 +195,15 @@ const CourseDetailScreen: React.FC = () => {
       >
         {/* Course Header */}
         <View style={styles.header}>
+          {(syncState.isOffline || syncState.usingCachedCourseDetail) && (
+            <View style={styles.offlineBanner}>
+              <CloudOff size={16} color="#b45309" />
+              <Text style={styles.offlineBannerText}>
+                Showing saved course detail while offline. Progress updates will sync when you reconnect.
+              </Text>
+            </View>
+          )}
+
           <Text style={styles.courseTitle}>{course.title}</Text>
           <Text style={styles.courseDescription}>{course.description}</Text>
           
@@ -193,13 +243,11 @@ const CourseDetailScreen: React.FC = () => {
           </View>
 
           {/* Generation Status */}
-          {generationStatus && !generationStatus.isComplete && (
-            <View style={styles.generationStatus}>
-              <ActivityIndicator size="small" color="#6366f1" />
-              <Text style={styles.generationText}>
-                {generationStatus.currentMessage || 'Generating course content...'}
-              </Text>
-            </View>
+          {generationStatus && (
+            <GenerationProgress 
+              courseId={courseId} 
+              showLessonDetails={true} 
+            />
           )}
         </View>
 
@@ -228,6 +276,15 @@ const CourseDetailScreen: React.FC = () => {
                 </View>
               </TouchableOpacity>
 
+              {getModuleLessons(module).length > 0 && (
+                <View style={styles.moduleProgressWrapper}>
+                  <ModuleProgress
+                    moduleName={module.title}
+                    lessons={getModuleLessons(module)}
+                  />
+                </View>
+              )}
+
               {expandedModules.has(module._id) && (
                 <View style={styles.microTopicsContainer}>
                   {module.microTopics.map((microTopic) => (
@@ -255,24 +312,18 @@ const CourseDetailScreen: React.FC = () => {
                           {microTopic.title}
                         </Text>
                         
-                        {microTopic.content ? (
-                          <View style={styles.microTopicIcons}>
-                            {microTopic.content.keyTakeaways.length > 0 && (
-                              <BookOpen size={14} color="#6b7280" />
-                            )}
-                            {microTopic.videos.length > 0 && (
-                              <PlayCircle size={14} color="#ec4899" />
-                            )}
-                          </View>
-                        ) : (
-                          <View style={styles.generatingBadge}>
-                            <RefreshCw size={12} color="#6366f1" />
-                            <Text style={styles.generatingText}>Generating...</Text>
-                          </View>
+                        {renderLessonStatus(microTopic, module._id)}
+                        {getLessonStatus(microTopic._id)?.error && (
+                          <Text style={styles.lessonErrorText}>
+                            {getLessonStatus(microTopic._id)?.error}
+                          </Text>
                         )}
                       </View>
                       
-                      <PlayCircle size={24} color="#6366f1" />
+                      <PlayCircle
+                        size={24}
+                        color={microTopic.content && microTopic.videos.length > 0 ? '#6366f1' : '#d1d5db'}
+                      />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -339,6 +390,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
     marginBottom: 16,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+    padding: 12,
+    marginBottom: 16,
+  },
+  offlineBannerText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#92400e',
   },
   courseTitle: {
     fontSize: 24,
@@ -460,6 +528,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  moduleProgressWrapper: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
   moduleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -520,10 +592,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    alignSelf: 'flex-start',
   },
   generatingText: {
     fontSize: 12,
     color: '#6366f1',
+  },
+  lessonErrorText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#dc2626',
   },
   actionsSection: {
     padding: 16,

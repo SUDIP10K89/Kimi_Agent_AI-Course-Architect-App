@@ -98,6 +98,17 @@ export interface Course {
 // Generation Status Types
 // ============================================
 
+export type LessonGenerationState = 'pending' | 'generating' | 'completed' | 'failed';
+
+export interface LessonGenerationStatus {
+  lessonId: string;
+  lessonTitle: string;
+  moduleId: string;
+  moduleName: string;
+  status: LessonGenerationState;
+  error?: string;
+}
+
 export interface GenerationStatus {
   isComplete: boolean;
   generatedCount: number;
@@ -106,11 +117,23 @@ export interface GenerationStatus {
   currentMessage?: string;
   failed?: boolean;
   failedReason?: string | null;
+  lessons?: LessonGenerationStatus[];
+  lastGeneratedLessonId?: string;
 }
 
 export interface CourseWithStatus {
   course: Course;
   generationStatus: GenerationStatus;
+}
+
+export type CourseListFilter = 'all' | 'not-started' | 'in-progress' | 'completed';
+
+export interface CourseSyncState {
+  isOffline: boolean;
+  usingCachedCourses: boolean;
+  usingCachedCourseDetail: boolean;
+  hasPendingSync: boolean;
+  lastSyncedAt: string | null;
 }
 
 // ============================================
@@ -203,4 +226,29 @@ export interface CourseStats {
 export interface StatsResponse {
   overview: CourseStats;
   recentCourses: Course[];
+}
+
+// ============================================
+// Settings Types
+// ============================================
+
+export interface ApiSettings {
+  apiKey?: string;
+  model: string;
+  baseUrl: string;
+  useCustomProvider: boolean;
+}
+
+export interface SettingsResponse {
+  apiSettings: {
+    model: string;
+    baseUrl: string;
+    useCustomProvider: boolean;
+    hasApiKey: boolean;
+  };
+}
+
+export interface TestSettingsResponse {
+  available: boolean;
+  modelsCount?: number;
 }
