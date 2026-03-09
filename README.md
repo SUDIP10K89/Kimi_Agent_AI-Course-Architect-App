@@ -44,13 +44,10 @@ LIVE : https://coursexai.vercel.app
 ai-course-architect/
 ├── backend/                 # Express.js REST API
 │   ├── src/
+│   │   ├── app/            # Express app bootstrap
 │   │   ├── config/         # Configuration files
-│   │   ├── controllers/    # Route handlers
-│   │   ├── middleware/     # Express middleware
-│   │   ├── models/         # MongoDB schemas
-│   │   ├── routes/         # API routes
-│   │   ├── services/       # Business logic
-│   │   └── utils/          # Utility functions
+│   │   ├── modules/        # Feature modules
+│   │   └── shared/         # Shared middleware and utilities
 │   └── package.json
 │
 └── app/                     # React Frontend (Vite + TypeScript)
@@ -182,9 +179,8 @@ The frontend will run on `http://localhost:5173`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/signup` | Register a new user |
 | POST | `/api/auth/login` | Login and get JWT token |
-| GET | `/api/auth/me` | Get current user info |
 
 ### Course Routes
 
@@ -196,20 +192,23 @@ The frontend will run on `http://localhost:5173`
 | GET | `/api/courses/recent` | Get recent courses |
 | GET | `/api/courses/:id` | Get course by ID |
 | GET | `/api/courses/:id/status` | Get generation status (SSE) |
-| PUT | `/api/courses/:id` | Update a course |
 | DELETE | `/api/courses/:id` | Delete a course |
-| PATCH | `/api/courses/:id/lessons/:lessonId` | Mark lesson as completed |
+| POST | `/api/courses/:id/continue` | Resume generation for a course |
+| POST | `/api/courses/:id/modules/:moduleId/topics/:topicId/complete` | Mark topic completed |
+| DELETE | `/api/courses/:id/modules/:moduleId/topics/:topicId/complete` | Mark topic incomplete |
+| POST | `/api/courses/:id/modules/:moduleId/regenerate` | Regenerate a module |
+| GET | `/api/courses/:id/export` | Export course data |
 
 ### Health Routes
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check endpoint |
-| GET | `/api/health/db` | Database connection status |
+| GET | `/api/health/detailed` | Detailed service health status |
 
 ### SSE (Server-Sent Events)
 
-- **Course Generation**: Connect to `/api/courses/:id/status` to receive real-time updates on course generation progress
+- **Course Generation**: Connect to `/api/sse/courses/:id/events` with auth to receive real-time updates on course generation progress
 
 ## 🔐 Environment Variables Reference
 
@@ -243,34 +242,49 @@ The frontend will run on `http://localhost:5173`
 
 ```
 backend/src/
+├── app/
+│   ├── createApp.js        # Express app composition
+│   └── server.js           # Runtime startup and shutdown
 ├── config/
 │   ├── database.js         # MongoDB connection
 │   └── env.js              # Environment configuration
-├── controllers/
-│   ├── authController.js   # Authentication logic
-│   ├── courseController.js # Course CRUD & generation
-│   └── userController.js   # User management
-├── middleware/
-│   ├── auth.js             # JWT verification
-│   ├── errorHandler.js     # Error handling
-│   └── rateLimiter.js      # Rate limiting
-├── models/
-│   ├── Course.js           # Course schema
-│   └── User.js             # User schema
-├── routes/
-│   ├── authRoutes.js       # Auth endpoints
-│   ├── courseRoutes.js     # Course endpoints
-│   ├── healthRoutes.js     # Health check endpoints
-│   ├── sseRoutes.js        # SSE endpoints
-│   └── userRoutes.js       # User endpoints
-├── services/
-│   ├── courseService.js    # Course business logic
-│   ├── openaiService.js    # OpenAI integration
-│   └── youtubeService.js   # YouTube API integration
-├── utils/
-│   ├── logger.js           # Logging utility
-│   └── sse.js              # SSE helpers
-└── server.js               # Express app entry point
+├── modules/
+│   ├── auth/
+│   │   ├── auth.controller.js
+│   │   ├── auth.middleware.js
+│   │   ├── auth.routes.js
+│   │   ├── auth.service.js
+│   │   └── auth.validators.js
+│   ├── courses/
+│   │   ├── course.controller.js
+│   │   ├── course.model.js
+│   │   ├── course.repository.js
+│   │   ├── course.routes.js
+│   │   └── course.service.js
+│   ├── generation/
+│   │   ├── generation.events.js
+│   │   ├── generation.routes.js
+│   │   └── generation.service.js
+│   ├── health/
+│   │   └── health.routes.js
+│   ├── providers/
+│   │   ├── ai/openai.service.js
+│   │   └── video/youtube.service.js
+│   └── users/
+│       ├── user.controller.js
+│       ├── user.model.js
+│       ├── user.routes.js
+│       ├── user.service.js
+│       └── user.validators.js
+├── shared/
+│   ├── middleware/
+│   │   ├── errorHandler.js
+│   │   ├── rateLimiter.js
+│   │   └── validateRequest.js
+│   └── utils/
+│       ├── logger.js
+│       └── secrets.js
+└── server.js               # Compatibility entry point
 ```
 
 ### Frontend Structure
