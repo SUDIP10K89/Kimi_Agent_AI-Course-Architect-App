@@ -79,6 +79,49 @@ const getBestThumbnail = (thumbnails) => {
 };
 
 /**
+ * Parse ISO 8601 duration to seconds
+ * @param {string} duration - ISO 8601 duration (PT#H#M#S)
+ * @returns {number} Duration in seconds
+ */
+const parseDurationSeconds = (duration) => {
+  if (!duration) return 0;
+
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+
+  const hours = parseInt(match[1] || 0, 10);
+  const minutes = parseInt(match[2] || 0, 10);
+  const seconds = parseInt(match[3] || 0, 10);
+
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
+/**
+ * Rank videos by duration preference (prefer 10-30 minute videos for courses)
+ * @param {Array} videos - Array of video objects with durationSeconds
+ * @returns {Array} Re-ranked video array
+ */
+const rankVideosByDuration = (videos) => {
+  const MIN_DURATION = 600;  // 10 minutes
+  const MAX_DURATION = 1800; // 30 minutes
+
+  return [...videos].sort((a, b) => {
+    const aSeconds = a.durationSeconds || 0;
+    const bSeconds = b.durationSeconds || 0;
+
+    const aInRange = aSeconds >= MIN_DURATION && aSeconds <= MAX_DURATION;
+    const bInRange = bSeconds >= MIN_DURATION && bSeconds <= MAX_DURATION;
+
+    // Prefer videos in the ideal range (10-30 minutes)
+    if (aInRange && !bInRange) return -1;
+    if (!aInRange && bInRange) return 1;
+
+    // If both in range or both out of range, prefer shorter videos
+    return aSeconds - bSeconds;
+  });
+};
+
+/**
  * Search for relevant YouTube videos
  * @param {string} query - Search query
  * @param {number} maxResults - Maximum number of results (default: 3)
@@ -105,8 +148,13 @@ export const searchVideos = async (query, maxResults = YOUTUBE_CONFIG.MAX_RESULT
       videoEmbeddable: 'true',
       videoSyndicated: 'true',
       maxResults: maxResults * 2, // Fetch more to filter
-      order: 'relevance',
+      order: 'relevance', // Can be 'relevance', 'date', 'viewCount', 'rating'
       safeSearch: 'moderate',
+      // Language and region settings for better results
+      relevanceLanguage: 'en',
+      regionCode: 'US',
+      // Duration filter: 'short' (<4min), 'medium' (4-20min), 'long' (>20min)
+      videoDuration: 'medium',
     });
 
     if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
@@ -142,18 +190,22 @@ export const searchVideos = async (query, maxResults = YOUTUBE_CONFIG.MAX_RESULT
       thumbnailUrl: getBestThumbnail(video.snippet.thumbnails),
       channelTitle: video.snippet.channelTitle,
       duration: formatDuration(video.contentDetails.duration),
+      durationSeconds: parseDurationSeconds(video.contentDetails.duration),
       publishedAt: video.snippet.publishedAt,
     }));
 
+    // Re-rank videos by duration preference (prefer 10-30 minute videos for courses)
+    const rankedVideos = rankVideosByDuration(videos);
+
     // Cache the results
     videoCache.set(cacheKey, {
-      data: videos,
+      data: rankedVideos,
       timestamp: Date.now(),
     });
 
-    console.log(`✅ Found ${videos.length} videos for "${query}"`);
+    console.log(`✅ Found ${rankedVideos.length} videos for "${query}"`);
 
-    return videos;
+    return rankedVideos;
 
   } catch (error) {
     console.error('❌ YouTube search error:', error.message);
@@ -204,7 +256,16 @@ export const searchEducationalVideos = async (topic, microTopic = '') => {
     ? `${topic} ${microTopic} tutorial`
     : `${topic} course tutorial`;
 
-  const educationalKeywords = ['tutorial', 'course', 'explained', 'introduction', 'basics'];
+  const educationalKeywords = [
+    'tutorial',
+    'course',
+    'explained',
+    'introduction',
+    'basics',
+    'complete course',
+    'full course',
+    'learn',
+  ];
 
   // Try the main query first
   let videos = await searchVideos(baseQuery);
@@ -219,6 +280,16 @@ export const searchEducationalVideos = async (topic, microTopic = '') => {
       videos = await searchVideos(altQuery);
       if (videos.length > 0) break;
     }
+  }
+
+  // If still no results, try searching for just the topic name
+  if (videos.length === 0) {
+    videos = await searchVideos(topic);
+  }
+
+  // If still no results, try with "for beginners" suffix
+  if (videos.length === 0) {
+    videos = await searchVideos(`${topic} for beginners`);
   }
 
   return videos;

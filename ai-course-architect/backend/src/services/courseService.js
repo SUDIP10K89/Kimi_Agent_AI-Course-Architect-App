@@ -72,11 +72,15 @@ export const generateCourse = async (topic, userId) => {
     const outline = await openaiService.generateCourseOutline(topic, userApiSettings);
 
     // Step 2: Prepare course structure
+    // Extract clean topic from AI-generated title for better video search
+    const cleanTopic = outline.title.replace(/^(learn|master|introduction to|basic|fundamentals of)\s+/i, '').trim();
+    
     const courseData = {
       createdBy: userId,
       title: outline.title,
       description: outline.description,
-      topic: topic,
+      topic: topic, // Keep original for reference
+      searchTopic: cleanTopic, // Cleaned topic for video searches
       difficulty: 'beginner',
       modules: [],
       progress: {
@@ -251,7 +255,7 @@ export const generateCourseContent = async (courseId) => {
 
           try {
             const videos = await youtubeService.searchEducationalVideos(
-              course.topic,
+              course.searchTopic || course.topic,
               microTopic.title
             );
             microTopic.videos = videos.slice(0, 3); // Max 3 videos per topic
@@ -412,7 +416,7 @@ export const continueCourseContent = async (courseId) => {
         updateProgress(`Finding videos for: ${microTopic.title}`);
 
         const videos = await youtubeService.searchEducationalVideos(
-          course.topic,
+          course.searchTopic || course.topic,
           microTopic.title
         );
 
