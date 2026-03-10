@@ -262,6 +262,9 @@ courseSchema.pre(/^find/, function (next) {
 courseSchema.index({ createdAt: -1 });
 courseSchema.index({ 'metadata.lastAccessed': -1 });
 courseSchema.index({ isArchived: 1 });
+courseSchema.index({ 'metadata.generation.status': 1 });
+courseSchema.index({ createdBy: 1, createdAt: -1 });
+courseSchema.index({ 'modules.microTopics.content': 1 });
 
 /**
  * Virtual property to get course status

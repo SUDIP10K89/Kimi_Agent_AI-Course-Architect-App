@@ -50,7 +50,7 @@ export const generateCourseContent = async (courseId) => {
     const userApiSettings = await getUserApiSettings(course.createdBy);
     await emitProgressState(courseId, 0, 'Starting content generation...', {}, { startedAt: new Date() });
 
-    const totalItems = course.modules.reduce((total, module) => total + module.microTopics.length, 0);
+    const totalItems = course.modules.reduce((total, module) => total + module.microTopics.length * 2, 0);
     let processedItems = 0;
     const allModuleTitles = course.modules.map((module) => module.title);
     const contentSummaries = [];
@@ -196,7 +196,7 @@ export const continueCourseContent = async (courseId) => {
       });
     });
 
-    const totalItems = topicsNeedingContent.length + topicsNeedingVideos.length;
+    const totalItems = topicsNeedingContent.length * 2 + topicsNeedingVideos.length;
     if (totalItems === 0) {
       await emitCompletionState(courseId, {
         message: 'Course content is already complete!',

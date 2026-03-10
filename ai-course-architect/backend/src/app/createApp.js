@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { v4 as uuidv4 } from 'uuid';
 
 import { CORS_CONFIG } from '../config/env.js';
 import authRoutes from '../modules/auth/auth.routes.js';
@@ -47,6 +48,12 @@ export const createApp = () => {
   app.use(standardLimiter);
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  app.use((req, res, next) => {
+    req.id = req.headers['x-request-id'] || uuidv4();
+    res.setHeader('X-Request-ID', req.id);
+    next();
+  });
 
   app.use((req, res, next) => {
     const start = Date.now();
