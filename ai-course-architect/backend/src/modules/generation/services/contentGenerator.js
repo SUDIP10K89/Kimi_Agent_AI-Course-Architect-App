@@ -2,7 +2,7 @@ import Course from '../../courses/course.model.js';
 import * as openaiService from '../../providers/ai/openai.service.js';
 import { logError, logWarn } from '../../../shared/utils/logger.js';
 import { getUserApiSettings } from './outlineGenerator.js';
-import { findVideosForMicroTopic, initializeVideoPool } from './videoFinder.js';
+import { findVideosForMicroTopic, initializeVideoPool } from './videoRecommendationService.js';
 import {
   emitCompletionState,
   emitFailureState,
