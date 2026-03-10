@@ -105,7 +105,7 @@ export const generateCourseContent = async (courseId) => {
           await updateProgress(`Finding videos for: ${microTopic.title}`);
 
           try {
-            microTopic.videos = await findVideosForMicroTopic(course, microTopic.title);
+            microTopic.videos = await findVideosForMicroTopic(String(course._id), microTopic.title);
           } catch (videoError) {
             if (videoError.code === 'YOUTUBE_QUOTA_EXCEEDED' || videoError.code === 'YOUTUBE_ACCESS_DENIED') {
               sendWarning(courseId, videoError.message);
@@ -222,7 +222,7 @@ export const continueCourseContent = async (courseId) => {
     for (const { microTopic } of topicsNeedingVideos) {
       try {
         await updateProgress(`Finding videos for: ${microTopic.title}`);
-        microTopic.videos = await findVideosForMicroTopic(course, microTopic.title);
+        microTopic.videos = await findVideosForMicroTopic(courseId, microTopic.title);
         processedItems++;
         await course.save();
         await delay(500);
@@ -270,7 +270,7 @@ export const continueCourseContent = async (courseId) => {
         await updateProgress(`Finding videos for: ${microTopic.title}`);
 
         try {
-          microTopic.videos = await findVideosForMicroTopic(course, microTopic.title);
+          microTopic.videos = await findVideosForMicroTopic(courseId, microTopic.title);
         } catch (videoError) {
           if (videoError.code === 'YOUTUBE_QUOTA_EXCEEDED' || videoError.code === 'YOUTUBE_ACCESS_DENIED') {
             sendWarning(courseId, videoError.message);
@@ -352,7 +352,7 @@ export const generateMicroTopicContent = async (courseId, moduleId, microTopicId
       userApiSettings
     );
 
-    microTopic.videos = await findVideosForMicroTopic(course, microTopic.title);
+    microTopic.videos = await findVideosForMicroTopic(courseId, microTopic.title);
     await course.save();
 
     return microTopic;
