@@ -238,6 +238,109 @@ export const batchSearchVideos = async (topics) => {
   return results;
 };
 
+/**
+ * Fetch bulk videos for a course (optimized - only 2 API calls)
+ * Uses course name to search once, fetches many results, returns all details
+ * @param {string} courseName - The course name/topic
+ * @param {number} maxResults - Number of videos to fetch (default 50)
+ * @returns {Promise<Array>} Array of video objects with all details
+ */
+export const fetchBulkCourseVideos = async (courseName, maxResults = 50) => {
+  try {
+    const cacheKey = `bulk:${courseName.toLowerCase().trim()}`;
+    const cached = videoCache.get(cacheKey);
+
+    if (isCacheValid(cached)) {
+      logDebug('YouTube bulk cache hit', { courseName });
+      return cached.data;
+    }
+
+    logDebug('Fetching bulk YouTube videos for course', { courseName, maxResults });
+
+    // Step 1: Search for course-related videos (1 API call)
+    const searchResponse = await youtube.search.list({
+      part: 'snippet',
+      q: courseName,
+      type: 'video',
+      videoEmbeddable: 'true',
+      videoSyndicated: 'true',
+      maxResults: maxResults,
+      order: 'relevance',
+      safeSearch: 'moderate',
+      relevanceLanguage: 'en',
+      regionCode: 'US',
+    });
+
+    if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
+      logWarn('No YouTube videos found for course', { courseName });
+      return [];
+    }
+
+    const videoIds = searchResponse.data.items
+      .map((item) => item.id.videoId)
+      .filter(Boolean);
+
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    // Step 2: Get video details for all IDs (1 API call)
+    const videosResponse = await youtube.videos.list({
+      part: 'snippet,contentDetails,statistics',
+      id: videoIds.join(','),
+    });
+
+    if (!videosResponse.data.items) {
+      return [];
+    }
+
+    const videos = videosResponse.data.items.map((video) => ({
+      videoId: video.id,
+      title: video.snippet.title,
+      description: video.snippet.description?.substring(0, 200) || '',
+      thumbnailUrl: getBestThumbnail(video.snippet.thumbnails),
+      channelTitle: video.snippet.channelTitle,
+      duration: formatDuration(video.contentDetails.duration),
+      durationSeconds: parseDurationSeconds(video.contentDetails.duration),
+      publishedAt: video.snippet.publishedAt,
+      viewCount: video.statistics?.viewCount || 0,
+    }));
+
+    // Rank by duration preference (10-30 min videos are best for tutorials)
+    const rankedVideos = rankVideosByDuration(videos);
+
+    // Cache for 24 hours
+    videoCache.set(cacheKey, {
+      data: rankedVideos,
+      timestamp: Date.now(),
+    });
+
+    logDebug('Bulk YouTube fetch completed', { courseName, resultCount: rankedVideos.length });
+    return rankedVideos;
+  } catch (error) {
+    logError('Bulk YouTube fetch failed', { courseName, error: error.message });
+
+    if (error.code === 403) {
+      const isQuotaExceeded =
+        error?.errors?.[0]?.reason === 'quotaExceeded' ||
+        error?.errors?.[0]?.reason === 'dailyLimitExceeded' ||
+        error?.message?.toLowerCase().includes('quota') ||
+        error?.message?.toLowerCase().includes('daily limit');
+
+      if (isQuotaExceeded) {
+        logError('YouTube API quota exceeded during bulk fetch', { courseName });
+        const quotaError = new Error(
+          'YouTube API daily quota exceeded. Video recommendations will be unavailable.'
+        );
+        quotaError.code = 'YOUTUBE_QUOTA_EXCEEDED';
+        throw quotaError;
+      }
+    }
+
+    return [];
+  }
+};
+
 export const getVideoDetails = async (videoId) => {
   try {
     const response = await youtube.videos.list({
@@ -296,6 +399,7 @@ export default {
   searchVideos,
   searchEducationalVideos,
   batchSearchVideos,
+  fetchBulkCourseVideos,
   getVideoDetails,
   clearCache,
   getCacheStats,
