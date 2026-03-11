@@ -2,7 +2,7 @@ import Course from '../../courses/course.model.js';
 import * as openaiService from '../../providers/ai/openai.service.js';
 import { logError, logWarn } from '../../../shared/utils/logger.js';
 import { getUserApiSettings } from './outlineGenerator.js';
-import { findVideosForMicroTopic, initializeVideoPool } from './videoRecommendationService.js';
+import { getVideos, initializePool } from './videoRecommendation.service.js';
 import {
   emitCompletionState,
   emitFailureState,
@@ -51,7 +51,7 @@ export const generateCourseContent = async (courseId) => {
     await emitProgressState(courseId, 0, 'Starting content generation...', {}, { startedAt: new Date() });
 
     // Initialize video pool once for the entire course (2 API calls instead of 2 per microTopic)
-    await initializeVideoPool(course);
+    await initializePool(String(course._id), course.topic);
 
     const totalItems = course.modules.reduce((total, module) => total + module.microTopics.length * 2, 0);
     let processedItems = 0;
@@ -105,7 +105,8 @@ export const generateCourseContent = async (courseId) => {
           await updateProgress(`Finding videos for: ${microTopic.title}`);
 
           try {
-            microTopic.videos = await findVideosForMicroTopic(String(course._id), microTopic.title);
+            const videoResult = await getVideos(String(course._id), course.topic, microTopic.title);
+            microTopic.videos = videoResult.videos;
           } catch (videoError) {
             if (videoError.code === 'YOUTUBE_QUOTA_EXCEEDED' || videoError.code === 'YOUTUBE_ACCESS_DENIED') {
               sendWarning(courseId, videoError.message);
@@ -170,7 +171,7 @@ export const continueCourseContent = async (courseId) => {
     const userApiSettings = await getUserApiSettings(course.createdBy);
     
     // Initialize video pool once for the entire course (2 API calls instead of 2 per microTopic)
-    await initializeVideoPool(course);
+    await initializePool(String(course._id), course.topic);
 
     const allModuleTitles = course.modules.map((module) => module.title);
     const contentSummaries = [];
@@ -222,7 +223,8 @@ export const continueCourseContent = async (courseId) => {
     for (const { microTopic } of topicsNeedingVideos) {
       try {
         await updateProgress(`Finding videos for: ${microTopic.title}`);
-        microTopic.videos = await findVideosForMicroTopic(courseId, microTopic.title);
+        const videoResult = await getVideos(courseId, course.topic, microTopic.title);
+        microTopic.videos = videoResult.videos;
         processedItems++;
         await course.save();
         await delay(500);
@@ -270,7 +272,8 @@ export const continueCourseContent = async (courseId) => {
         await updateProgress(`Finding videos for: ${microTopic.title}`);
 
         try {
-          microTopic.videos = await findVideosForMicroTopic(courseId, microTopic.title);
+          const videoResult = await getVideos(courseId, course.topic, microTopic.title);
+          microTopic.videos = videoResult.videos;
         } catch (videoError) {
           if (videoError.code === 'YOUTUBE_QUOTA_EXCEEDED' || videoError.code === 'YOUTUBE_ACCESS_DENIED') {
             sendWarning(courseId, videoError.message);
@@ -352,7 +355,8 @@ export const generateMicroTopicContent = async (courseId, moduleId, microTopicId
       userApiSettings
     );
 
-    microTopic.videos = await findVideosForMicroTopic(courseId, microTopic.title);
+    const videoResult = await getVideos(String(course._id), course.topic, microTopic.title);
+    microTopic.videos = videoResult.videos;
     await course.save();
 
     return microTopic;
