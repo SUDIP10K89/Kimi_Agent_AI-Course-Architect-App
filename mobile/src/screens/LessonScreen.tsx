@@ -16,7 +16,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import YoutubePlayer from 'react-native-youtube-iframe';
+import YouTubePlayer from '@/components/YouTubePlayer';
 import { useCourse } from '@/contexts/CourseContext';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import {
@@ -134,7 +134,7 @@ const LessonScreen: React.FC = () => {
 
             {selectedVideo && (
               <View style={styles.playerCard}>
-                <YoutubePlayer height={220} play={false} videoId={selectedVideo.videoId} />
+                <YouTubePlayer height={220} play={false} videoId={selectedVideo.videoId} />
                 <View style={styles.playerMeta}>
                   <Text style={styles.playerTitle}>{selectedVideo.title}</Text>
                   <Text style={styles.playerChannel}>{selectedVideo.channelTitle}</Text>
