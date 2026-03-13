@@ -89,6 +89,8 @@ export interface Course {
   modules: Module[];
   progress: Progress;
   isArchived: boolean;
+  isPublic: boolean;
+  originalCourseId?: string;
   metadata: CourseMetadata;
   createdAt: string;
   updatedAt: string;

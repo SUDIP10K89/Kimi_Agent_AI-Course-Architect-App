@@ -21,7 +21,7 @@ import { useCourse } from '@/contexts/CourseContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Search, BookOpen, Clock, ChevronRight, Archive, CloudOff, RefreshCw } from 'lucide-react-native';
+import { Search, BookOpen, Clock, ChevronRight, Archive, CloudOff, RefreshCw, Globe } from 'lucide-react-native';
 import type { CoursesStackParamList } from '@/navigation/types';
 import type { Course, CourseListFilter } from '@/types';
 
@@ -198,6 +198,12 @@ const CoursesListScreen: React.FC = () => {
             onChangeText={setSearchQuery}
           />
         </View>
+        <TouchableOpacity 
+          style={[styles.exploreButton, { backgroundColor: colors.primary }]}
+          onPress={() => navigation.navigate('PublicCourses')}
+        >
+          <Globe size={20} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {(syncState.isOffline || syncState.usingCachedCourses || syncState.hasPendingSync) && (
@@ -263,6 +269,9 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
     },
     searchBar: {
       flexDirection: 'row',
@@ -279,6 +288,13 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       paddingVertical: 12,
       fontSize: 16,
       color: colors.text,
+    },
+    exploreButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     offlineBanner: {
       flexDirection: 'row',

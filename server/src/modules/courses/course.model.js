@@ -179,6 +179,16 @@ const courseSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  isPublic: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  originalCourseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course',
+    default: null,
+  },
   metadata: {
     generatedAt: {
       type: Date,

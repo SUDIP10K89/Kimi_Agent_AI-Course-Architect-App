@@ -14,7 +14,7 @@ import type {
   PaginatedCourses,
   StatsResponse,
 } from '@/types';
-import { apiDelete, apiGet, apiPost } from './client';
+import { apiDelete, apiGet, apiPost, apiPatch } from './client';
 
 export const generateCourse = async (
   topic: string
@@ -155,5 +155,53 @@ export const deleteCourse = async (courseId: string): Promise<ApiResponse<void>>
 
 export const exportCourse = async (courseId: string): Promise<ApiResponse<unknown>> => {
   const response = await apiGet<ApiResponse<unknown>>(`/courses/${courseId}/export`);
+  return response.data;
+};
+
+export interface PublicCourse {
+  courses: Course[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export const getPublicCourses = async (
+  search = '',
+  page = 1,
+  limit = 20
+): Promise<ApiResponse<PublicCourse>> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  if (search) {
+    params.append('search', search);
+  }
+
+  const response = await apiGet<ApiResponse<PublicCourse>>(`/courses/public?${params.toString()}`);
+  return response.data;
+};
+
+export const updateCourseVisibility = async (
+  courseId: string,
+  isPublic: boolean
+): Promise<ApiResponse<{ courseId: string; isPublic: boolean }>> => {
+  const response = await apiPatch<ApiResponse<{ courseId: string; isPublic: boolean }>>(
+    `/courses/${courseId}/visibility`,
+    { isPublic }
+  );
+  return response.data;
+};
+
+export const forkCourse = async (
+  courseId: string
+): Promise<ApiResponse<{ courseId: string }>> => {
+  const response = await apiPost<ApiResponse<{ courseId: string }>>(
+    `/courses/${courseId}/fork`
+  );
   return response.data;
 };

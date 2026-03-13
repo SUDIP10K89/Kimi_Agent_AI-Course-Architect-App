@@ -127,4 +127,7 @@ export const apiPut = <T>(url: string, data?: unknown, config?: AxiosRequestConf
 export const apiDelete = <T>(url: string, config?: AxiosRequestConfig) =>
   apiClient.delete<T>(url, config);
 
+export const apiPatch = <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+  apiClient.patch<T>(url, data, config);
+
 export default apiClient;

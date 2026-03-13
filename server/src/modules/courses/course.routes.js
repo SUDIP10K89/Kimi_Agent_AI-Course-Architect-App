@@ -40,6 +40,13 @@ router.get('/stats/overview', protect, courseController.getCourseStats);
 router.get('/recent', protect, courseController.getRecentCourses);
 
 /**
+ * @route   GET /api/courses/public
+ * @desc    Get public courses with search
+ * @access  Public
+ */
+router.get('/public', courseController.getPublicCourses);
+
+/**
  * @route   GET /api/courses/:id
  * @desc    Get single course by ID
  * @access  Public
@@ -108,5 +115,19 @@ router.get('/:id/export', protect, courseController.exportCourse);
  * @access  Public
  */
 router.delete('/:id', protect, courseController.deleteCourse);
+
+/**
+ * @route   PATCH /api/courses/:id/visibility
+ * @desc    Update course visibility (public/private)
+ * @access  Public
+ */
+router.patch('/:id/visibility', protect, courseController.updateCourseVisibility);
+
+/**
+ * @route   POST /api/courses/:id/fork
+ * @desc    Fork (copy) a public course to user's account
+ * @access  Public
+ */
+router.post('/:id/fork', protect, courseController.forkCourse);
 
 export default router;

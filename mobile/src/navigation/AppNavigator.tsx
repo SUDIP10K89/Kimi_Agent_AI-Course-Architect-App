@@ -11,13 +11,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Home, BookOpen, Settings, PlusCircle } from 'lucide-react-native';
+import { Home, BookOpen, Settings, PlusCircle, Globe } from 'lucide-react-native';
 
 // Import screens (will be created next)
 import LoginScreen from '@/screens/LoginScreen';
 import SignupScreen from '@/screens/SignupScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import GenerateCourseScreen from '@/screens/GenerateCourseScreen';
+import PublicCoursesScreen from '@/screens/PublicCoursesScreen';
 import CoursesListScreen from '@/screens/CoursesListScreen';
 import CourseDetailScreen from '@/screens/CourseDetailScreen';
 import LessonScreen from '@/screens/LessonScreen';
@@ -74,6 +75,11 @@ const HomeNavigator: React.FC = () => {
         options={{ title: 'Generate Course' }}
       />
       <HomeStack.Screen 
+        name="PublicCourses" 
+        component={PublicCoursesScreen}
+        options={{ title: 'Explore Courses' }}
+      />
+      <HomeStack.Screen 
         name="CourseDetail" 
         component={CourseDetailScreen}
         options={{ title: 'Course Details' }}
@@ -109,6 +115,11 @@ const CoursesNavigator: React.FC = () => {
         name="CoursesList" 
         component={CoursesListScreen}
         options={{ title: 'My Courses' }}
+      />
+      <CoursesStack.Screen 
+        name="PublicCourses" 
+        component={PublicCoursesScreen}
+        options={{ title: 'Explore Courses' }}
       />
       <CoursesStack.Screen 
         name="GenerateCourse" 
@@ -168,6 +179,17 @@ const MainNavigator: React.FC = () => {
           tabBarLabel: 'Courses',
           tabBarIcon: ({ color, size }) => (
             <BookOpen color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ExploreTab"
+        component={CoursesNavigator}
+        initialParams={{ screen: 'PublicCourses' }}
+        options={{
+          tabBarLabel: 'Explore',
+          tabBarIcon: ({ color, size }) => (
+            <Globe color={color} size={size} />
           ),
         }}
       />

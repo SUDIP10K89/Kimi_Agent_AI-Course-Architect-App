@@ -24,6 +24,7 @@ export type AuthStackParamList = {
 export type HomeStackParamList = {
   Home: undefined;
   GenerateCourse: undefined;
+  PublicCourses: undefined;
   CourseDetail: { courseId: string };
   Lesson: { courseId: string; moduleId: string; microTopicId: string };
 };
@@ -35,6 +36,7 @@ export type HomeStackParamList = {
 export type CoursesStackParamList = {
   CoursesList: undefined;
   GenerateCourse: undefined;
+  PublicCourses: undefined;
   CourseDetail: { courseId: string };
   Lesson: { courseId: string; moduleId: string; microTopicId: string };
 };
@@ -46,6 +48,7 @@ export type CoursesStackParamList = {
 export type MainTabParamList = {
   HomeTab: NavigatorScreenParams<HomeStackParamList>;
   CoursesTab: NavigatorScreenParams<CoursesStackParamList>;
+  ExploreTab: NavigatorScreenParams<CoursesStackParamList>;
   GenerateTab: NavigatorScreenParams<CoursesStackParamList>;
   Settings: undefined;
 };

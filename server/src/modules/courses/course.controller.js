@@ -437,6 +437,22 @@ export const deleteCourse = async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
+    // Check if other users have forked this course
+    const forkedCourses = await Course.countDocuments({ originalCourseId: id });
+    
+    if (forkedCourses > 0) {
+      // Instead of deleting, archive and make private
+      course.isArchived = true;
+      course.isPublic = false;
+      await course.save();
+      
+      return res.json({
+        success: true,
+        message: 'Course archived (users have enrolled copies)',
+        data: { archived: true },
+      });
+    }
+
     const deleted = await courseService.deleteCourse(id);
 
     if (!deleted) {
@@ -451,6 +467,155 @@ export const deleteCourse = async (req, res, next) => {
       message: 'Course deleted successfully',
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const getPublicCourses = async (req, res, next) => {
+  try {
+    const { search, page = 1, limit = 20 } = req.query;
+    
+    const query = { isPublic: true, isArchived: false };
+    
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { topic: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [courses, total] = await Promise.all([
+      Course.find(query)
+        .populate('createdBy', 'name')
+        .sort({ 'metadata.generatedAt': -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Course.countDocuments(query),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        courses,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      },
+    });
+  } catch (error) {
+    logError('Failed to get public courses', { error: error.message });
+    next(error);
+  }
+};
+
+export const updateCourseVisibility = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { isPublic } = req.body;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Not authorized' });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Course not found' });
+    }
+
+    const ownerId = course.createdBy?._id || course.createdBy;
+    if (String(ownerId) !== String(user._id)) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+
+    course.isPublic = Boolean(isPublic);
+    await course.save();
+
+    res.json({
+      success: true,
+      data: {
+        courseId: id,
+        isPublic: course.isPublic,
+      },
+    });
+  } catch (error) {
+    logError('Failed to update course visibility', { error: error.message });
+    next(error);
+  }
+};
+
+export const forkCourse = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Not authorized' });
+    }
+
+    const originalCourse = await Course.findById(id);
+    if (!originalCourse) {
+      return res.status(404).json({ success: false, error: 'Course not found' });
+    }
+
+    if (!originalCourse.isPublic) {
+      return res.status(400).json({ success: false, error: 'Course is not public' });
+    }
+
+    // Check if user already has a copy
+    const existingCopy = await Course.findOne({
+      originalCourseId: id,
+      createdBy: user._id,
+      isArchived: false,
+    });
+
+    if (existingCopy) {
+      return res.json({
+        success: true,
+        data: { courseId: existingCopy._id },
+        message: 'You already have a copy of this course',
+      });
+    }
+
+    // Create a deep copy of the course
+    const courseData = originalCourse.toObject();
+    delete courseData._id;
+    delete courseData.createdAt;
+    delete courseData.updatedAt;
+    
+    const forkedCourse = new Course({
+      ...courseData,
+      createdBy: user._id,
+      originalCourseId: originalCourse._id,
+      isPublic: false,
+      progress: {
+        completedMicroTopics: 0,
+        totalMicroTopics: courseData.progress?.totalMicroTopics || 0,
+        percentage: 0,
+      },
+      metadata: {
+        ...courseData.metadata,
+        generatedAt: new Date(),
+        lastAccessed: new Date(),
+      },
+    });
+
+    await forkedCourse.save();
+
+    res.status(201).json({
+      success: true,
+      data: {
+        courseId: forkedCourse._id,
+      },
+    });
+  } catch (error) {
+    logError('Failed to fork course', { error: error.message });
     next(error);
   }
 };

@@ -4,7 +4,7 @@
  * Displays course content with modules and lessons.
  */
 
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { GenerationProgress, LessonStatusIndicator, ModuleProgress } from '@/components';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { updateCourseVisibility } from '@/api/courseApi';
 import {
   ChevronDown,
   ChevronUp,
@@ -32,6 +33,9 @@ import {
   Trash2,
   RefreshCw,
   CloudOff,
+  MoreVertical,
+  Globe,
+  Lock,
 } from 'lucide-react-native';
 import type { HomeStackParamList, CoursesStackParamList } from '@/navigation/types';
 import type { MicroTopic, LessonGenerationStatus, Module } from '@/types';
@@ -62,6 +66,51 @@ const CourseDetailScreen: React.FC = () => {
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const pollingStartedRef = useRef(false);
+
+  // Header menu
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity 
+          onPress={() => {
+            const course = currentCourse?.course;
+            const isPublic = course?.isPublic || false;
+            Alert.alert(
+              'Course Options',
+              'Choose an action',
+              [
+                {
+                  text: isPublic ? 'Make Private' : 'Make Public',
+                  onPress: handleToggleVisibility,
+                },
+                {
+                  text: 'Delete Course',
+                  style: 'destructive',
+                  onPress: handleDeleteCourse,
+                },
+                { text: 'Cancel', style: 'cancel' },
+              ]
+            );
+          }}
+          style={{ padding: 8 }}
+        >
+          <MoreVertical size={24} color={colors.text} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, colors, currentCourse]);
+
+  const handleToggleVisibility = async () => {
+    const course = currentCourse?.course;
+    if (!course) return;
+    
+    try {
+      await updateCourseVisibility(courseId, !course.isPublic);
+      await fetchCourse(courseId);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update course visibility');
+    }
+  };
 
   useEffect(() => {
     // Fetch course on mount
