@@ -26,6 +26,7 @@ import {
   Lightbulb,
   BookOpen,
   Video,
+  X,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { HomeStackParamList, CoursesStackParamList } from '@/navigation/types';
@@ -74,15 +75,8 @@ const LessonScreen: React.FC = () => {
   const content = microTopic?.content as LessonContent | null;
   const videos = microTopic?.videos as VideoType[] | null;
 
-  useEffect(() => {
-    if (videos?.length) {
-      setSelectedVideoId((current) => current ?? videos[0].videoId);
-    } else {
-      setSelectedVideoId(null);
-    }
-  }, [videos]);
-
-  const selectedVideo = videos?.find((video) => video.videoId === selectedVideoId) ?? videos?.[0] ?? null;
+  // Don't auto-select video - only show player when user clicks
+  const selectedVideo = videos?.find((video) => video.videoId === selectedVideoId) ?? null;
 
   const handleMarkComplete = async () => {
     if (!microTopic) return;
@@ -134,7 +128,15 @@ const LessonScreen: React.FC = () => {
 
             {selectedVideo && (
               <View style={styles.playerCard}>
-                <YoutubePlayer height={220} play={false} videoId={selectedVideo.videoId} />
+                <View style={styles.playerContainer}>
+                  <YoutubePlayer height={220} play={true} videoId={selectedVideo.videoId} />
+                  <TouchableOpacity 
+                    style={styles.closeButton} 
+                    onPress={() => setSelectedVideoId(null)}
+                  >
+                    <X size={20} color={colors.textInverse} />
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.playerMeta}>
                   <Text style={styles.playerTitle}>{selectedVideo.title}</Text>
                   <Text style={styles.playerChannel}>{selectedVideo.channelTitle}</Text>
@@ -344,6 +346,20 @@ const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
       marginBottom: 16,
       borderWidth: 1,
       borderColor: colors.border,
+    },
+    playerContainer: {
+      position: 'relative',
+    },
+    closeButton: {
+      position: 'absolute',
+      top: 8,
+      right: 8,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     playerMeta: {
       padding: 14,
