@@ -1,8 +1,8 @@
 import Course from '../../courses/course.model.js';
 import * as openaiService from '../../providers/ai/openai.service.js';
 import { logError, logWarn } from '../../../shared/utils/logger.js';
-import { getUserApiSettings } from './outlineGenerator.js';
-import { getVideos, initializePool } from './videoRecommendation.service.js';
+import { getUserApiSettings } from './outlineGenerator.service.js';
+import { getVideos } from './video/video.service.js';
 import {
   emitCompletionState,
   emitFailureState,
@@ -49,9 +49,6 @@ export const generateCourseContent = async (courseId) => {
 
     const userApiSettings = await getUserApiSettings(course.createdBy);
     await emitProgressState(courseId, 0, 'Starting content generation...', {}, { startedAt: new Date() });
-
-    // Initialize video pool once for the entire course (2 API calls instead of 2 per microTopic)
-    await initializePool(String(course._id), course.topic);
 
     const totalItems = course.modules.reduce((total, module) => total + module.microTopics.length * 2, 0);
     let processedItems = 0;
@@ -170,9 +167,6 @@ export const continueCourseContent = async (courseId) => {
 
     const userApiSettings = await getUserApiSettings(course.createdBy);
     
-    // Initialize video pool once for the entire course (2 API calls instead of 2 per microTopic)
-    await initializePool(String(course._id), course.topic);
-
     const allModuleTitles = course.modules.map((module) => module.title);
     const contentSummaries = [];
 

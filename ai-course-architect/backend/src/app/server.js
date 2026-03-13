@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { connectDatabase, disconnectDatabase } from '../config/database.js';
 import { SERVER_CONFIG, validateEnv } from '../config/env.js';
 import { markInterruptedGenerationsOnStartup } from '../modules/generation/generation.service.js';
-import { checkOpenAIHealth } from '../modules/providers/ai/openai.service.js';
+import { runStartupChecks } from '../modules/generation/services/health.service.js';
 import {
   handleUncaughtException,
   handleUnhandledRejection,
@@ -25,9 +25,12 @@ const startServer = async () => {
     await connectDatabase();
     await markInterruptedGenerationsOnStartup();
 
-    const openaiHealthy = await checkOpenAIHealth();
-    if (!openaiHealthy) {
-      logError('OpenAI API health check failed. Please verify your OPENAI_API_KEY and optional BASE_URL.');
+    const healthResults = await runStartupChecks();
+    if (!healthResults.healthy) {
+      const unhealthy = healthResults.services.filter((s) => !s.healthy);
+      logError('Critical services are unhealthy. Please check configuration.', {
+        unhealthy: unhealthy.map((s) => ({ name: s.name, status: s.status })),
+      });
       process.exit(1);
     }
 

@@ -5,11 +5,11 @@ import {
   continueCourseContent,
   generateCourseContent,
   generateMicroTopicContent,
-} from './services/contentGenerator.js';
+} from './services/contentGenerator.service.js';
 import {
   createCourseFromOutline,
   getUserApiSettings,
-} from './services/outlineGenerator.js';
+} from './services/outlineGenerator.service.js';
 import {
   markInterruptedGenerationsOnStartup,
   updateGenerationState,

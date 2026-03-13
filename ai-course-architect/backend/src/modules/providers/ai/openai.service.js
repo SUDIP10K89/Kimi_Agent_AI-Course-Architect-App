@@ -9,6 +9,7 @@
 import OpenAI from 'openai';
 import { OPENAI_CONFIG } from '../../../config/env.js';
 import { logDebug, logError, logWarn } from '../../../shared/utils/logger.js';
+import { BaseAiProvider } from './base.provider.js';
 
 const createDefaultClient = () => {
   const clientOptions = {
@@ -23,6 +24,31 @@ const createDefaultClient = () => {
 };
 
 const defaultClient = createDefaultClient();
+
+export class OpenAiProvider extends BaseAiProvider {
+  constructor() {
+    super('OpenAI');
+    this.defaultClient = defaultClient;
+  }
+
+  async generateCourseOutline(topic, userApiSettings = null) {
+    return generateCourseOutline(topic, userApiSettings);
+  }
+
+  async generateLessonContent(topic, moduleTitle, courseTitle, userApiSettings = null, context = {}) {
+    return generateLessonContent(topic, moduleTitle, courseTitle, userApiSettings, context);
+  }
+
+  async regenerateModule(topic, moduleTitle, existingModules = [], userApiSettings = null) {
+    return regenerateModule(topic, moduleTitle, existingModules, userApiSettings);
+  }
+
+  async checkHealth() {
+    return checkOpenAIHealth();
+  }
+}
+
+export const openAiProvider = new OpenAiProvider();
 
 export const createCustomClient = (apiKey, model, baseUrl) => {
   const clientOptions = {
@@ -659,4 +685,6 @@ export default {
   generateLessonContent,
   regenerateModule,
   checkOpenAIHealth,
+  OpenAiProvider,
+  openAiProvider,
 };

@@ -5,6 +5,35 @@
  */
 
 // ============================================
+// SSE Types
+// ============================================
+
+export interface SSEProgressEvent {
+  progress: number;
+  message: string;
+  timestamp: string;
+}
+
+export interface SSECompleteEvent {
+  message: string;
+  courseId: string;
+  title: string;
+  timestamp: string;
+}
+
+export interface SSEErrorEvent {
+  error: string;
+  timestamp: string;
+}
+
+export interface SSEWarningEvent {
+  message: string;
+  timestamp: string;
+}
+
+export type SSEEventType = 'progress' | 'complete' | 'error' | 'warning' | 'connected';
+
+// ============================================
 // Video Types
 // ============================================
 

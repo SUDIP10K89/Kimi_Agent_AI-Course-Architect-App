@@ -5,30 +5,23 @@
  * from the backend during course generation.
  */
 
-export interface SSEProgressEvent {
-  progress: number;
-  message: string;
-  timestamp: string;
-}
+import type { SSEProgressEvent, SSECompleteEvent, SSEErrorEvent, SSEWarningEvent } from '@/types';
 
-export interface SSECompleteEvent {
-  message: string;
-  courseId: string;
-  title: string;
-  timestamp: string;
-}
-
-export interface SSEErrorEvent {
-  error: string;
-  timestamp: string;
-}
-
-export interface SSEWarningEvent {
-  message: string;
-  timestamp: string;
-}
-
-export type SSEEventType = 'progress' | 'complete' | 'error' | 'warning' | 'connected';
+/**
+ * Get auth token from localStorage
+ */
+const getAuthToken = (): string | null => {
+  try {
+    const stored = localStorage.getItem('auth');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed.token || null;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+};
 
 /**
  * Connect to SSE endpoint for course generation progress
@@ -47,7 +40,14 @@ export const connectToCourseProgress = (
   onWarning?: (data: SSEWarningEvent) => void
 ): (() => void) => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const eventSource = new EventSource(`${apiUrl}/sse/courses/${courseId}/events`);
+  
+  // Get token from localStorage and add as query parameter
+  const token = getAuthToken();
+  const url = token 
+    ? `${apiUrl}/sse/courses/${courseId}/events?token=${encodeURIComponent(token)}`
+    : `${apiUrl}/sse/courses/${courseId}/events`;
+  
+  const eventSource = new EventSource(url);
 
   eventSource.addEventListener('connected', (event) => {
     console.log('SSE Connected:', event.data);

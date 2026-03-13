@@ -36,7 +36,7 @@ export const OPENAI_CONFIG = {
   MAX_TOKENS: 4000,
   TEMPERATURE: 0.7,
   // Optional override for non-standard endpoints (e.g. OpenRouter)
-  BASE_URL: process.env.OPENAI_BASE_URL ,
+  BASE_URL: process.env.OPENAI_BASE_URL,
 };
 
 /**
@@ -48,12 +48,20 @@ export const YOUTUBE_CONFIG = {
 };
 
 /**
+ * Gemini API configuration
+ */
+export const GEMINI_CONFIG = {
+  API_KEY: process.env.GEMINI_API_KEY,
+  MODEL: process.env.GEMINI_MODEL || 'gemini-embedding-001',
+};
+
+/**
  * CORS configuration
  */
 export const CORS_CONFIG = {
-  ORIGIN: process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(',') 
-    : ['http://localhost:5173', 'http://localhost:3000','https://coursexai.vercel.app'],
+  ORIGIN: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['http://localhost:5173', 'http://localhost:3000', 'https://coursexai.vercel.app'],
 };
 
 /**
