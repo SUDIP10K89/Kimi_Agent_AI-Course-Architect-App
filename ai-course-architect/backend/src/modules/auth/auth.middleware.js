@@ -39,6 +39,24 @@ export const protect = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Auth middleware error', err);
+    
+    // Handle specific JWT errors with more descriptive messages
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Token expired',
+        code: 'TOKEN_EXPIRED' 
+      });
+    }
+    
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Invalid token',
+        code: 'INVALID_TOKEN' 
+      });
+    }
+    
     return res.status(401).json({ success: false, error: 'Token invalid' });
   }
 };

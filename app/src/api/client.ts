@@ -60,13 +60,23 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error) && error.response) {
+      const responseData = error.response.data as { success?: boolean; error?: string; code?: string };
+      
       // Auto logout on 401
       if (error.response.status === 401) {
         localStorage.removeItem('auth');
-        window.location.href = '/login';
+        
+        // Check for specific error codes
+        if (responseData?.code === 'TOKEN_EXPIRED') {
+          // Show session expired message before redirecting
+          console.warn('Session expired. Please log in again.');
+          window.location.href = '/login?expired=true';
+        } else {
+          window.location.href = '/login';
+        }
       }
-      console.error('API Error:', error.response.data);
-      return Promise.reject(error.response.data);
+      console.error('API Error:', responseData);
+      return Promise.reject(responseData);
     }
     return Promise.reject({ success: false, error: 'Network error' });
   }
