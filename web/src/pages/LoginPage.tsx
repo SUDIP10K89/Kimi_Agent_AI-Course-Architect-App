@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Mail } from 'lucide-react';
+import { resendVerification } from '@/api/authApi';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +23,9 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   // Check for session expired parameter
   useEffect(() => {
@@ -45,9 +49,35 @@ const LoginPage: React.FC = () => {
       navigate('/courses');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed';
-      setError(msg);
+      
+      // Check if this is a verification required error
+      if (msg.includes('verify your email') || msg.includes('verify your account')) {
+        setShowResendOption(true);
+        setResendEmail(email.trim());
+        setError(msg + ' Use the option below to resend the verification email.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!resendEmail) return;
+    
+    setResendStatus('sending');
+    try {
+      const response = await resendVerification(resendEmail);
+      if (response.success) {
+        setResendStatus('sent');
+      } else {
+        setResendStatus('error');
+        setError(response.error || 'Failed to resend verification email');
+      }
+    } catch (err) {
+      setResendStatus('error');
+      setError('Failed to resend verification email');
     }
   };
 
@@ -76,44 +106,72 @@ const LoginPage: React.FC = () => {
                 </Alert>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">Email</label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSubmitting}
-                    required
-                    className="h-11 border-border/50 focus:border-primary/50"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="password" className="text-sm font-medium">Password</label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    required
-                    className="h-11 border-border/50 focus:border-primary/50"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full h-11 bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 shadow-sm hover:shadow-glow transition-all duration-300"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Signing in...' : 'Sign in'}
-                </Button>
-              </form>
+              {showResendOption && resendStatus === 'sent' ? (
+                <Alert className="mb-6 bg-green-50 border-green-200">
+                  <Mail className="h-4 w-4" />
+                  <AlertDescription className="text-green-800">
+                    Verification email sent! Check your inbox for {resendEmail}
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                      <label htmlFor="email" className="text-sm font-medium">Email</label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isSubmitting}
+                        required
+                        className="h-11 border-border/50 focus:border-primary/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="password" className="text-sm font-medium">Password</label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isSubmitting}
+                        required
+                        className="h-11 border-border/50 focus:border-primary/50"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full h-11 bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 shadow-sm hover:shadow-glow transition-all duration-300"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Signing in...' : 'Sign in'}
+                    </Button>
+                  </form>
+
+                  {showResendOption && resendStatus !== 'sent' && (
+                    <div className="mt-4 pt-4 border-t border-border/50">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Didn't receive the verification email?
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleResendVerification}
+                        disabled={resendStatus === 'sending'}
+                      >
+                        {resendStatus === 'sending' ? 'Sending...' : 'Resend Verification Email'}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
 
               <p className="text-sm text-center text-muted-foreground mt-6">
-                Don&apos;t have an account?{' '}
+                Don&apos;t have an account?{" "}
                 <Link to="/signup" className="text-primary font-medium hover:underline">
                   Sign up
                 </Link>

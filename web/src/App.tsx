@@ -14,6 +14,7 @@ import CoursesPage from '@/pages/CoursesPage';
 import CourseViewer from '@/components/CourseViewer';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
+import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import SettingsPage from '@/pages/SettingsPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Toaster } from '@/components/ui/sonner';
@@ -62,6 +63,7 @@ const App: React.FC = () => {
                 />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route
                   path="/settings"
                   element={

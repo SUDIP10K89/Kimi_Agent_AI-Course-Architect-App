@@ -12,11 +12,18 @@ const googleOAuthClient = new OAuth2Client(
   process.env.GOOGLE_REDIRECT_URI
 );
 
-const signToken = (user) => jwt.sign(
-  { id: user._id, name: user.name, email: user.email },
-  JWT_CONFIG.SECRET,
-  { expiresIn: JWT_CONFIG.EXPIRES_IN }
-);
+const signToken = (user) => {
+  console.log('[AUTH DEBUG] Signing token for user:', user.email);
+  console.log('[AUTH DEBUG] JWT config - secret:', JWT_CONFIG.SECRET ? 'present' : 'MISSING', 'expiresIn:', JWT_CONFIG.EXPIRES_IN);
+  
+  const token = jwt.sign(
+    { id: user._id, name: user.name, email: user.email },
+    JWT_CONFIG.SECRET,
+    { expiresIn: JWT_CONFIG.EXPIRES_IN }
+  );
+  console.log('[AUTH DEBUG] Token signed, length:', token.length);
+  return token;
+};
 
 const generateVerificationToken = () => {
   return crypto.randomBytes(32).toString('hex');

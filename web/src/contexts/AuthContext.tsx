@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  setAuth: (user: User, token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -97,6 +98,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setToken(null);
   };
 
+  // Set auth directly (used after email verification)
+  const setAuth = (user: User, token: string) => {
+    setUser(user);
+    setToken(token);
+    localStorage.setItem('auth', JSON.stringify({ user, token }));
+    setAuthToken(token);
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -105,6 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     signup,
     logout,
+    setAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -39,14 +39,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loadStoredAuth = async () => {
     try {
+      console.log('[AUTH DEBUG] Loading stored auth...');
       const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const authData: AuthResponse = JSON.parse(stored);
+        console.log('[AUTH DEBUG] Stored auth found, user:', authData.user?.email, 'token:', authData.token ? 'YES' : 'NO');
         setUser(authData.user);
         setToken(authData.token);
+      } else {
+        console.log('[AUTH DEBUG] No stored auth found');
       }
     } catch (error) {
-      console.error('Error loading stored auth:', error);
+      console.error('[AUTH DEBUG] Error loading stored auth:', error);
     } finally {
       setIsLoading(false);
     }
@@ -54,9 +58,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (form: LoginForm) => {
     try {
+      console.log('[AUTH DEBUG] Login attempt for:', form.email);
       setError(null);
       setIsLoading(true);
       const response = await authApi.login(form);
+      console.log('[AUTH DEBUG] Login response success:', response.success);
       
       if (response.success) {
         const authData: AuthResponse = {
@@ -64,14 +70,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           token: response.data.token,
         };
         
+        console.log('[AUTH DEBUG] Saving auth, user:', authData.user?.email);
         await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
         setUser(authData.user);
         setToken(authData.token);
+        console.log('[AUTH DEBUG] Login complete');
       } else {
         throw new Error(response.error || 'Login failed');
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || 'Login failed';
+      console.log('[AUTH DEBUG] Login error:', errorMessage);
       setError(errorMessage);
       throw error;
     } finally {
@@ -115,6 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    console.log('[AUTH DEBUG] Logout called');
     try {
       // Call all registered logout callbacks
       await Promise.all(logoutCallbacksRef.current.map(callback => callback()));
@@ -122,8 +132,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
       setUser(null);
       setToken(null);
+      console.log('[AUTH DEBUG] Logout complete');
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error('[AUTH DEBUG] Error logging out:', error);
     }
   };
 

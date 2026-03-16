@@ -16,7 +16,16 @@ import { apiPost } from './client';
  */
 export const login = async (form: LoginForm): Promise<ApiResponse<AuthResponse>> => {
   const response = await apiPost<ApiResponse<AuthResponse>>('/auth/login', form);
-  return response.data;
+  // Check if response indicates verification is needed
+  const result = response.data;
+  if (result && !result.success && result.needsVerification) {
+    // Throw an error with the needsVerification flag
+    const error: any = new Error(result.error || 'Please verify your email');
+    error.needsVerification = true;
+    error.email = result.email;
+    throw error;
+  }
+  return result;
 };
 
 /**

@@ -61,7 +61,15 @@ export const GEMINI_CONFIG = {
 export const CORS_CONFIG = {
   ORIGIN: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',')
-    : ['http://localhost:5173', 'http://localhost:3000', 'https://coursexai.vercel.app'],
+    : [
+        'http://localhost:5173', 
+        'http://localhost:3000', 
+        'http://localhost:8081',
+        'http://localhost:19000',
+        'https://coursexai.vercel.app',
+        'exp://localhost:8081',
+        'exp://localhost:19000',
+      ],
 };
 
 /**
@@ -69,7 +77,7 @@ export const CORS_CONFIG = {
  */
 export const JWT_CONFIG = {
   SECRET: process.env.JWT_SECRET,
-  EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1h',
+  EXPIRES_IN: process.env.JWT_EXPIRES_IN || process.env.tokenExpiry || '1h',
 };
 
 /**

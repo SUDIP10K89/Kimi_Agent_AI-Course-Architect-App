@@ -77,12 +77,16 @@ apiClient.interceptors.request.use(
       const stored = await AsyncStorage.getItem('auth');
       if (stored) {
         const authData = JSON.parse(stored);
+        console.log('[AUTH DEBUG] Token found in storage:', authData.token ? 'YES' : 'NO');
         if (authData.token && config.headers) {
           config.headers.Authorization = `Bearer ${authData.token}`;
+          console.log('[AUTH DEBUG] Authorization header set');
         }
+      } else {
+        console.log('[AUTH DEBUG] No auth data found in storage');
       }
     } catch (error) {
-      console.log('Error getting auth token:', error);
+      console.log('[AUTH DEBUG] Error getting auth token:', error);
     }
 
     console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
@@ -94,8 +98,11 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    console.log('[AUTH DEBUG] Response interceptor called, status:', error.response?.status);
+    
     if (error.response) {
       if (error.response.status === 401) {
+        console.log('[AUTH DEBUG] Got 401 Unauthorized - clearing auth');
         try {
           const AsyncStorage = require('@react-native-async-storage/async-storage').default;
           await AsyncStorage.removeItem('auth');
@@ -104,14 +111,15 @@ apiClient.interceptors.response.use(
             await logoutCallback();
           }
         } catch (storageError) {
-          console.log('Error clearing auth state:', storageError);
+          console.log('[AUTH DEBUG] Error clearing auth state:', storageError);
         }
       }
 
-      console.error('API Error:', error.response.data);
+      console.error('[API ERROR]', error.response.status, error.response.data);
       return Promise.reject(error.response.data);
     }
 
+    console.error('[API ERROR] Network error:', error.message);
     return Promise.reject({ success: false, error: 'Network error' });
   }
 );

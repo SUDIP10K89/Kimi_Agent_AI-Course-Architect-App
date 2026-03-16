@@ -10,11 +10,16 @@ import { SERVER_CONFIG } from '../../config/env.js';
 
 // Create transporter - configure with your SMTP provider
 const createTransporter = () => {
-  // For development, use console logging
-  if (SERVER_CONFIG.IS_DEVELOPMENT) {
+  // Check if SMTP is configured
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    console.log('[EMAIL] SMTP not configured - emails will be logged only');
     return {
       sendMail: async (options) => {
-        console.log('=== EMAIL (Development Mode) ===');
+        console.log('=== EMAIL (Development Mode - Not Sent) ===');
         console.log('To:', options.to);
         console.log('Subject:', options.subject);
         console.log('Body:', options.text);
@@ -24,14 +29,15 @@ const createTransporter = () => {
     };
   }
 
-  // For production, use real SMTP
+  // Use real SMTP
+  console.log('[EMAIL] SMTP configured, emails will be sent');
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host: smtpHost,
     port: parseInt(process.env.SMTP_PORT, 10) || 587,
     secure: process.env.SMTP_SECURE === 'true',
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: smtpUser,
+      pass: smtpPass,
     },
   });
 };
@@ -102,7 +108,14 @@ The ${APP_NAME} Team
     `.trim(),
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('[EMAIL] Verification email sent successfully to', email, 'MessageId:', result.messageId);
+    return result;
+  } catch (error) {
+    console.error('[EMAIL] Failed to send verification email to', email, error);
+    throw error;
+  }
 };
 
 /**

@@ -20,9 +20,9 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GraduationCap, Mail, Lock, ArrowRight } from 'lucide-react-native';
+import { GraduationCap, Mail, Lock, ArrowRight, RefreshCw } from 'lucide-react-native';
 import type { AuthStackParamList } from '@/navigation/types';
-import { googleLogin as googleLoginApi } from '@/api/authApi';
+import { googleLogin as googleLoginApi, resendVerification } from '@/api/authApi';
 
 type LoginNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -34,6 +34,8 @@ const LoginScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   const handleLogin = async () => {
     setLocalError(null);
@@ -47,7 +49,33 @@ const LoginScreen: React.FC = () => {
       await login({ email: email.trim(), password });
     } catch (err: any) {
       const errorMessage = err.message || 'Login failed. Please try again.';
-      setLocalError(errorMessage);
+      
+      // Check if this is a verification required error
+      if (errorMessage.includes('verify your email') || errorMessage.includes('verify your account')) {
+        setShowResendOption(true);
+        setLocalError(errorMessage + ' Use the button below to resend the verification email.');
+      } else {
+        setLocalError(errorMessage);
+      }
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) return;
+    
+    setResendStatus('sending');
+    try {
+      const response = await resendVerification(email.trim());
+      if (response.success) {
+        setResendStatus('sent');
+        setLocalError('Verification email sent! Check your inbox.');
+      } else {
+        setResendStatus('error');
+        setLocalError(response.error || 'Failed to resend verification email');
+      }
+    } catch (err: any) {
+      setResendStatus('error');
+      setLocalError('Failed to resend verification email');
     }
   };
 
@@ -145,6 +173,20 @@ const LoginScreen: React.FC = () => {
                 </>
               )}
             </TouchableOpacity>
+
+            {/* Resend Verification Option */}
+            {showResendOption && resendStatus !== 'sent' && (
+              <TouchableOpacity
+                style={[styles.resendButton, resendStatus === 'sending' && styles.buttonDisabled]}
+                onPress={handleResendVerification}
+                disabled={resendStatus === 'sending'}
+              >
+                <RefreshCw size={18} color="#6366f1" />
+                <Text style={styles.resendButtonText}>
+                  {resendStatus === 'sending' ? 'Sending...' : 'Resend Verification Email'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {/* Divider */}
             <View style={styles.divider}>
@@ -274,6 +316,19 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  resendButton: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  resendButtonText: {
+    color: '#6366f1',
+    fontSize: 14,
     fontWeight: '600',
   },
   footer: {

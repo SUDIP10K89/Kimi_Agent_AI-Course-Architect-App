@@ -148,6 +148,8 @@ export interface ApiResponse<T> {
   data: T;
   error?: string;
   code?: string;
+  needsVerification?: boolean;
+  email?: string;
 }
 
 // ============================================
