@@ -16,6 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (form: LoginForm) => Promise<void>;
   signup: (form: SignupForm) => Promise<AuthResponse | void>;
+  completeAuth: (auth: AuthResponse) => Promise<void>;
   logout: () => Promise<void>;
   registerLogoutCallback: (callback: () => void | Promise<void>) => void;
   error: string | null;
@@ -122,6 +123,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const completeAuth = useCallback(async (auth: AuthResponse) => {
+    if (!auth?.user || !auth?.token) {
+      throw new Error('Invalid authentication response');
+    }
+
+    const authData: AuthResponse = {
+      user: auth.user,
+      token: auth.token,
+    };
+
+    await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+    setUser(auth.user);
+    setToken(auth.token);
+    setError(null);
+  }, []);
+
   const logout = async () => {
     console.log('[AUTH DEBUG] Logout called');
     try {
@@ -150,6 +167,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         login,
         signup,
+        completeAuth,
         logout,
         registerLogoutCallback,
         error,

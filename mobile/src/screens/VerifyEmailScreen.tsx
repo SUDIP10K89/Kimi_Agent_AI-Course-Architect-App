@@ -29,7 +29,7 @@ type VerificationStatus = 'idle' | 'verifying' | 'success' | 'error' | 'resend';
 const VerifyEmailScreen: React.FC = () => {
   const navigation = useNavigation<VerifyEmailNavigationProp>();
   const route = useRoute<VerifyEmailRouteProp>();
-  const { login } = useAuth();
+  const { completeAuth } = useAuth();
 
   const [status, setStatus] = useState<VerificationStatus>('idle');
   const [message, setMessage] = useState('Enter the OTP sent to your email');
@@ -72,15 +72,15 @@ const VerifyEmailScreen: React.FC = () => {
         setStatus('success');
         setMessage('Email verified successfully!');
 
-        // Auto-login after verification
-        await login({
-          email: response.data.user.email,
-          password: '',
-        });
+        // Store auth and let navigator switch to Main
+        await completeAuth(response.data);
+      } else {
+        setStatus('error');
+        setMessage(response.error || 'Invalid or expired OTP');
       }
     } catch (error: any) {
       setStatus('error');
-      setMessage(error.message || 'Invalid or expired OTP');
+      setMessage(error?.error || error.message || 'Invalid or expired OTP');
     }
   };
 

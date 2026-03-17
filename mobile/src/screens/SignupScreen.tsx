@@ -59,16 +59,21 @@ const SignupScreen: React.FC = () => {
     }
 
     try {
-      await signup({ name: name.trim(), email: email.trim(), password });
-      // Signup succeeded - navigate to OTP verification screen
-      setSignupEmail(email.trim());
-      navigation.navigate('VerifyEmail', { email: email.trim() });
+      const normalizedEmail = email.trim().toLowerCase();
+      const result = await signup({ name: name.trim(), email: normalizedEmail, password });
+      
+      // Only navigate to OTP verification when the API requires it
+      if (result?.requiresVerification) {
+        setSignupEmail(normalizedEmail);
+        navigation.replace('VerifyEmail', { email: normalizedEmail });
+      }
     } catch (err: any) {
       console.log('[SIGNUP DEBUG] Caught error:', err.message);
       // Check if this is a verification required message
       if (err.message?.includes('verify your email') || err.message?.includes('verify your account')) {
-        setSignupEmail(email.trim());
-        navigation.navigate('VerifyEmail', { email: email.trim() });
+        const normalizedEmail = email.trim().toLowerCase();
+        setSignupEmail(normalizedEmail);
+        navigation.replace('VerifyEmail', { email: normalizedEmail });
       } else {
         setLocalError(err.message || 'Signup failed. Please try again.');
       }

@@ -48,7 +48,11 @@ export const register = signup;
  */
 export const verifyEmail = async (email: string, otp: string): Promise<ApiResponse<AuthResponse>> => {
   const response = await apiPost<ApiResponse<AuthResponse>>('/auth/verify-email', { email, otp });
-  return response.data;
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || 'Email verification failed');
+  }
+  return result;
 };
 
 /**
@@ -56,7 +60,11 @@ export const verifyEmail = async (email: string, otp: string): Promise<ApiRespon
  */
 export const resendVerification = async (email: string): Promise<ApiResponse<{ message: string }>> => {
   const response = await apiPost<ApiResponse<{ message: string }>>('/auth/resend-verification', { email });
-  return response.data;
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to resend verification email');
+  }
+  return result;
 };
 
 /**

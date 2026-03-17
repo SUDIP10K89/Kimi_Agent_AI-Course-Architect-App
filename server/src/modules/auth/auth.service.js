@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 
 import { JWT_CONFIG } from '../../config/env.js';
@@ -24,13 +25,16 @@ const signToken = (user) => {
   return token;
 };
 
+const normalizeEmail = (email) => email?.trim().toLowerCase();
+
 const generateOTP = () => {
   // Generate a 6-digit OTP
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 export const signupUser = async ({ name, email, password }) => {
-  const existing = await User.findOne({ email });
+  const normalizedEmail = normalizeEmail(email);
+  const existing = await User.findOne({ email: normalizedEmail });
   if (existing) {
     const error = new Error('Email already in use');
     error.statusCode = 400;
@@ -43,7 +47,7 @@ export const signupUser = async ({ name, email, password }) => {
 
   const user = await User.create({
     name,
-    email,
+    email: normalizedEmail,
     password,
     isVerified: false,
     otp,
@@ -65,7 +69,8 @@ export const signupUser = async ({ name, email, password }) => {
 };
 
 export const loginUser = async ({ email, password }) => {
-  const user = await User.findOne({ email }).select('+password');
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail }).select('+password');
   if (!user || !user.password) {
     const error = new Error('Invalid credentials');
     error.statusCode = 401;
@@ -95,7 +100,8 @@ export const loginUser = async ({ email, password }) => {
 };
 
 export const verifyEmail = async (email, otp) => {
-  const user = await User.findOne({ email });
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail }).select('+otp');
   
   if (!user) {
     const error = new Error('User not found');
@@ -134,7 +140,8 @@ export const verifyEmail = async (email, otp) => {
 };
 
 export const resendVerification = async (email) => {
-  const user = await User.findOne({ email });
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail });
 
   if (!user) {
     // Don't reveal if user exists
@@ -173,6 +180,7 @@ export const googleLogin = async (idToken) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
+    const normalizedEmail = normalizeEmail(email);
 
     // Check if user exists with this Google ID
     let user = await User.findOne({ googleId });
@@ -186,7 +194,7 @@ export const googleLogin = async (idToken) => {
     }
 
     // Check if user exists with this email
-    user = await User.findOne({ email: email.toLowerCase() });
+    user = await User.findOne({ email: normalizedEmail });
 
     if (user) {
       // Link Google account to existing user
@@ -207,7 +215,7 @@ export const googleLogin = async (idToken) => {
     // Create new user with Google
     user = await User.create({
       name: name || 'Google User',
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: crypto.randomBytes(16).toString('hex'), // Random password (not used for Google login)
       googleId,
       isVerified: true, // Google verifies email
