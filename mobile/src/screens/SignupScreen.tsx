@@ -20,9 +20,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GraduationCap, Mail, Lock, User, ArrowRight, RefreshCw } from 'lucide-react-native';
+import { GraduationCap, Mail, Lock, User, ArrowRight } from 'lucide-react-native';
 import type { AuthStackParamList } from '@/navigation/types';
-import { resendVerification } from '@/api/authApi';
 
 type SignupNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
 
@@ -34,14 +33,13 @@ const SignupScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [signupEmail, setSignupEmail] = useState<string>('');
+
+  const goToVerifyEmail = (normalizedEmail: string) => {
+    navigation.navigate('VerifyEmail', { email: normalizedEmail });
+  };
 
   const handleSignup = async () => {
     setLocalError(null);
-    setSuccessMessage(null);
-    setResendStatus('idle');
 
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setLocalError('Please fill in all fields');
@@ -61,41 +59,20 @@ const SignupScreen: React.FC = () => {
     try {
       const normalizedEmail = email.trim().toLowerCase();
       const result = await signup({ name: name.trim(), email: normalizedEmail, password });
-      
+      console.log('[SIGNUP DEBUG] Signup result:', result);
       // Only navigate to OTP verification when the API requires it
-      if (result?.requiresVerification) {
-        setSignupEmail(normalizedEmail);
-        navigation.replace('VerifyEmail', { email: normalizedEmail });
+      if (result?.requiresVerification === true) {
+        goToVerifyEmail(normalizedEmail);
       }
     } catch (err: any) {
       console.log('[SIGNUP DEBUG] Caught error:', err.message);
       // Check if this is a verification required message
       if (err.message?.includes('verify your email') || err.message?.includes('verify your account')) {
         const normalizedEmail = email.trim().toLowerCase();
-        setSignupEmail(normalizedEmail);
-        navigation.replace('VerifyEmail', { email: normalizedEmail });
+        goToVerifyEmail(normalizedEmail);
       } else {
         setLocalError(err.message || 'Signup failed. Please try again.');
       }
-    }
-  };
-
-  const handleResendVerification = async () => {
-    if (!signupEmail.trim()) return;
-    
-    setResendStatus('sending');
-    try {
-      const response = await resendVerification(signupEmail.trim());
-      if (response.success) {
-        setResendStatus('sent');
-        setSuccessMessage('Verification email sent! Check your inbox.');
-      } else {
-        setResendStatus('error');
-        setLocalError(response.error || 'Failed to resend verification email');
-      }
-    } catch (err: any) {
-      setResendStatus('error');
-      setLocalError('Failed to resend verification email');
     }
   };
 
@@ -126,25 +103,6 @@ const SignupScreen: React.FC = () => {
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>{displayError}</Text>
               </View>
-            )}
-
-            {successMessage && (
-              <View style={styles.successContainer}>
-                <Text style={styles.successText}>{successMessage}</Text>
-              </View>
-            )}
-
-            {successMessage && resendStatus !== 'sent' && (
-              <TouchableOpacity
-                style={[styles.resendButton, resendStatus === 'sending' && styles.buttonDisabled]}
-                onPress={handleResendVerification}
-                disabled={resendStatus === 'sending'}
-              >
-                <RefreshCw size={18} color="#6366f1" />
-                <Text style={styles.resendButtonText}>
-                  {resendStatus === 'sending' ? 'Sending...' : 'Resend Verification Email'}
-                </Text>
-              </TouchableOpacity>
             )}
 
             <View style={styles.inputContainer}>
@@ -221,6 +179,7 @@ const SignupScreen: React.FC = () => {
               <Text style={styles.linkText}>Sign In</Text>
             </TouchableOpacity>
           </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -283,16 +242,6 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontSize: 14,
   },
-  successContainer: {
-    backgroundColor: '#ecfdf5',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  successText: {
-    color: '#059669',
-    fontSize: 14,
-  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -339,19 +288,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   linkText: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  resendButton: {
-    marginTop: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-  },
-  resendButtonText: {
     color: '#6366f1',
     fontSize: 14,
     fontWeight: '600',

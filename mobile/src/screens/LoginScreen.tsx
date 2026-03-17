@@ -107,6 +107,15 @@ const LoginScreen: React.FC = () => {
     }
   };
 
+  const handleGoToVerify = () => {
+    if (!email.trim()) {
+      setLocalError('Enter your email to verify your account');
+      return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    navigation.navigate('VerifyEmail', { email: normalizedEmail });
+  };
+
   const displayError = localError || error;
 
   return (
@@ -238,6 +247,13 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.linkText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.verifyFooter}>
+            <Text style={styles.footerText}>Already received an OTP?</Text>
+            <TouchableOpacity onPress={handleGoToVerify}>
+              <Text style={styles.linkText}>Verify Email</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -352,6 +368,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 32,
+    gap: 8,
+  },
+  verifyFooter: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 12,
     gap: 8,
   },
   footerText: {
