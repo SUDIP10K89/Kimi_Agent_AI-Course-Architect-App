@@ -11,12 +11,18 @@ import { apiPost } from './client';
 export const login = async (email: string, password: string): Promise<ApiResponse<AuthResponse>> => {
   const response = await apiPost<ApiResponse<AuthResponse>>('/auth/login', { email, password });
   const result = response.data;
-  // Check if response indicates verification is needed
-  if (result && !result.success && result.needsVerification) {
-    const error: any = new Error(result.error || 'Please verify your email');
-    error.needsVerification = true;
-    error.email = result.email;
-    throw error;
+  
+  // Check if the response indicates an error (even with 200 status due to validateStatus)
+  if (!result.success) {
+    // Check if this is a verification required error
+    if (result.needsVerification) {
+      const error: any = new Error(result.error || 'Please verify your email');
+      error.needsVerification = true;
+      error.email = result.email;
+      throw error;
+    }
+    // Throw other errors
+    throw new Error(result.error || 'Login failed');
   }
   return result;
 };
@@ -27,10 +33,10 @@ export const signup = async (name: string, email: string, password: string): Pro
 };
 
 /**
- * Verify email with token
+ * Verify email with OTP
  */
-export const verifyEmail = async (token: string): Promise<ApiResponse<AuthResponse>> => {
-  const response = await apiPost<ApiResponse<AuthResponse>>('/auth/verify-email', { token });
+export const verifyEmail = async (email: string, otp: string): Promise<ApiResponse<AuthResponse>> => {
+  const response = await apiPost<ApiResponse<AuthResponse>>('/auth/verify-email', { email, otp });
   return response.data;
 };
 

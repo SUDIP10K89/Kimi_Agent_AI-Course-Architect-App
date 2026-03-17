@@ -39,6 +39,8 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     setLocalError(null);
+    setShowResendOption(false);
+    setResendStatus('idle');
     
     if (!email.trim() || !password) {
       setLocalError('Please enter both email and password');
@@ -49,9 +51,10 @@ const LoginScreen: React.FC = () => {
       await login({ email: email.trim(), password });
     } catch (err: any) {
       const errorMessage = err.message || 'Login failed. Please try again.';
+      const lowerError = errorMessage.toLowerCase();
       
       // Check if this is a verification required error
-      if (errorMessage.includes('verify your email') || errorMessage.includes('verify your account')) {
+      if (lowerError.includes('verify') || lowerError.includes('verification')) {
         setShowResendOption(true);
         setLocalError(errorMessage + ' Use the button below to resend the verification email.');
       } else {
@@ -185,6 +188,20 @@ const LoginScreen: React.FC = () => {
                 <Text style={styles.resendButtonText}>
                   {resendStatus === 'sending' ? 'Sending...' : 'Resend Verification Email'}
                 </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Also show resend option if user has entered email but not tried to login yet */}
+            {!showResendOption && email.trim() && !isLoading && (
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={() => {
+                  setShowResendOption(true);
+                  setLocalError('Enter your password and try to login, or click below to resend verification email.');
+                }}
+              >
+                <RefreshCw size={18} color="#6366f1" />
+                <Text style={styles.resendButtonText}>Didn't receive verification email?</Text>
               </TouchableOpacity>
             )}
 

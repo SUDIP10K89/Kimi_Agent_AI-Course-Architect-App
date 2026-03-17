@@ -1,7 +1,7 @@
 /**
  * Verify Email Screen
  * 
- * Screen for email verification after signup.
+ * Screen for email verification using OTP.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,35 +24,49 @@ import { useAuth } from '@/contexts/AuthContext';
 type VerifyEmailRouteProp = RouteProp<AuthStackParamList, 'VerifyEmail'>;
 type VerifyEmailNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>;
 
-type VerificationStatus = 'verifying' | 'success' | 'error' | 'resend';
+type VerificationStatus = 'idle' | 'verifying' | 'success' | 'error' | 'resend';
 
 const VerifyEmailScreen: React.FC = () => {
   const navigation = useNavigation<VerifyEmailNavigationProp>();
   const route = useRoute<VerifyEmailRouteProp>();
   const { login } = useAuth();
 
-  const [status, setStatus] = useState<VerificationStatus>('verifying');
-  const [message, setMessage] = useState('Verifying your email...');
-  const [email, setEmail] = useState<string>('');
+  const [status, setStatus] = useState<VerificationStatus>('idle');
+  const [message, setMessage] = useState('Enter the OTP sent to your email');
+  const [email, setEmail] = useState<string>(route.params?.email || '');
+  const [otp, setOtp] = useState<string>('');
 
   useEffect(() => {
-    // Get token from route params or URL params
-    const token = route.params?.token;
-    if (token) {
-      verifyToken(token);
-    } else {
-      // If no token, show resend option
-      setStatus('resend');
-      setMessage('Unable to verify automatically. Please enter your email to resend the verification link.');
+    // If email is passed in params, we're ready to verify
+    if (email) {
+      setStatus('idle');
     }
-  }, [route.params?.token]);
+  }, [email]);
 
-  const verifyToken = async (token: string) => {
+  const handleVerify = async () => {
+    if (!email.trim()) {
+      setMessage('Please enter your email address');
+      setStatus('error');
+      return;
+    }
+    
+    if (!otp.trim()) {
+      setMessage('Please enter the OTP');
+      setStatus('error');
+      return;
+    }
+
+    if (otp.trim().length !== 6) {
+      setMessage('OTP must be 6 digits');
+      setStatus('error');
+      return;
+    }
+
     try {
       setStatus('verifying');
-      setMessage('Verifying your email...');
+      setMessage('Verifying...');
 
-      const response = await verifyEmail(token);
+      const response = await verifyEmail(email.trim(), otp.trim());
 
       if (response.success && response.data) {
         setStatus('success');
@@ -60,12 +75,12 @@ const VerifyEmailScreen: React.FC = () => {
         // Auto-login after verification
         await login({
           email: response.data.user.email,
-          password: '', // Password not needed - we'll use token auth
+          password: '',
         });
       }
     } catch (error: any) {
       setStatus('error');
-      setMessage(error.message || 'Failed to verify email. The link may have expired.');
+      setMessage(error.message || 'Invalid or expired OTP');
     }
   };
 
@@ -77,17 +92,17 @@ const VerifyEmailScreen: React.FC = () => {
 
     try {
       setStatus('verifying');
-      setMessage('Sending verification email...');
+      setMessage('Sending OTP...');
 
       const response = await resendVerification(email.trim());
 
       if (response.success) {
-        setMessage(response.data?.message || 'Verification email sent! Check your inbox.');
-        setStatus('success');
+        setMessage(response.data?.message || 'OTP sent! Check your inbox.');
+        setStatus('idle');
       }
     } catch (error: any) {
       setStatus('error');
-      setMessage(error.message || 'Failed to resend verification email');
+      setMessage(error.message || 'Failed to resend OTP');
     }
   };
 
@@ -122,10 +137,12 @@ const VerifyEmailScreen: React.FC = () => {
         );
 
       case 'resend':
+      case 'idle':
+      default:
         return (
           <View style={styles.statusContainer}>
             <Mail size={64} color="#6366f1" />
-            <Text style={styles.title}>Resend Verification Email</Text>
+            <Text style={styles.title}>Verify Your Email</Text>
             <Text style={styles.message}>{message}</Text>
 
             <View style={styles.inputContainer}>
@@ -141,12 +158,31 @@ const VerifyEmailScreen: React.FC = () => {
               />
             </View>
 
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter 6-digit OTP"
+                placeholderTextColor="#9ca3af"
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+
             <TouchableOpacity
               style={styles.button}
+              onPress={handleVerify}
+            >
+              <Text style={styles.buttonText}>Verify Email</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.resendButton}
               onPress={handleResend}
             >
-              <RefreshCw size={20} color="#fff" />
-              <Text style={styles.buttonText}>Resend Email</Text>
+              <RefreshCw size={18} color="#6366f1" />
+              <Text style={styles.resendButtonText}>Resend OTP</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -171,8 +207,6 @@ const VerifyEmailScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-import { TextInput } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -253,6 +287,19 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   linkText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  resendButton: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  resendButtonText: {
     color: '#6366f1',
     fontSize: 14,
     fontWeight: '600',

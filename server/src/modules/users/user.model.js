@@ -34,11 +34,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    verificationToken: {
+    // OTP verification
+    otp: {
       type: String,
       select: false,
     },
-    verificationTokenExpires: {
+    otpExpires: {
       type: Date,
     },
     verifiedAt: {

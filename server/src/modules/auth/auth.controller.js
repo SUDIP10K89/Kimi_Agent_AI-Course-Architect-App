@@ -59,13 +59,13 @@ export const login = async (req, res, next) => {
 
 export const verifyEmail = async (req, res, next) => {
   try {
-    const { token } = req.body;
+    const { email, otp } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ success: false, error: 'Verification token is required' });
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, error: 'Email and OTP are required' });
     }
 
-    const result = await authService.verifyEmail(token);
+    const result = await authService.verifyEmail(email, otp);
     res.json({ 
       success: true, 
       data: result,

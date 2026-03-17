@@ -16,14 +16,19 @@ import { apiPost } from './client';
  */
 export const login = async (form: LoginForm): Promise<ApiResponse<AuthResponse>> => {
   const response = await apiPost<ApiResponse<AuthResponse>>('/auth/login', form);
-  // Check if response indicates verification is needed
   const result = response.data;
-  if (result && !result.success && result.needsVerification) {
-    // Throw an error with the needsVerification flag
-    const error: any = new Error(result.error || 'Please verify your email');
-    error.needsVerification = true;
-    error.email = result.email;
-    throw error;
+  
+  // Check if the response indicates an error
+  if (!result.success) {
+    // Check if this is a verification required error
+    if (result.needsVerification) {
+      const error: any = new Error(result.error || 'Please verify your email');
+      error.needsVerification = true;
+      error.email = result.email;
+      throw error;
+    }
+    // Throw other errors
+    throw new Error(result.error || 'Login failed');
   }
   return result;
 };
@@ -39,10 +44,10 @@ export const signup = async (form: SignupForm): Promise<ApiResponse<AuthResponse
 export const register = signup;
 
 /**
- * Verify email with token
+ * Verify email with OTP
  */
-export const verifyEmail = async (token: string): Promise<ApiResponse<AuthResponse>> => {
-  const response = await apiPost<ApiResponse<AuthResponse>>('/auth/verify-email', { token });
+export const verifyEmail = async (email: string, otp: string): Promise<ApiResponse<AuthResponse>> => {
+  const response = await apiPost<ApiResponse<AuthResponse>>('/auth/verify-email', { email, otp });
   return response.data;
 };
 

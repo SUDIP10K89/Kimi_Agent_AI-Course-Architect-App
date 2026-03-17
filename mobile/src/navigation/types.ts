@@ -15,7 +15,7 @@ import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigat
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
-  VerifyEmail: { token?: string } | undefined;
+  VerifyEmail: { email?: string };
 };
 
 // ============================================

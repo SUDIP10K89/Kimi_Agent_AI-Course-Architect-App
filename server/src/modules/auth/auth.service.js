@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 
 import { JWT_CONFIG } from '../../config/env.js';
@@ -25,8 +24,9 @@ const signToken = (user) => {
   return token;
 };
 
-const generateVerificationToken = () => {
-  return crypto.randomBytes(32).toString('hex');
+const generateOTP = () => {
+  // Generate a 6-digit OTP
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 export const signupUser = async ({ name, email, password }) => {
@@ -37,21 +37,22 @@ export const signupUser = async ({ name, email, password }) => {
     throw error;
   }
 
-  const verificationToken = generateVerificationToken();
-  const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  // Generate OTP for email verification
+  const otp = generateOTP();
+  const otpExpires = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
 
   const user = await User.create({
     name,
     email,
     password,
-    verificationToken,
-    verificationTokenExpires,
     isVerified: false,
+    otp,
+    otpExpires,
   });
 
-  // Send verification email
+  // Send verification email with OTP
   try {
-    await emailService.sendVerificationEmail(email, verificationToken, name);
+    await emailService.sendVerificationEmail(email, otp, name);
   } catch (err) {
     console.error('Failed to send verification email:', err);
     // Continue anyway - don't block signup
@@ -59,7 +60,6 @@ export const signupUser = async ({ name, email, password }) => {
 
   return {
     user: user.toJSON(),
-    token: signToken(user),
     requiresVerification: true,
   };
 };
@@ -94,22 +94,30 @@ export const loginUser = async ({ email, password }) => {
   };
 };
 
-export const verifyEmail = async (token) => {
-  const user = await User.findOne({
-    verificationToken: token,
-    verificationTokenExpires: { $gt: Date.now() },
-  });
-
+export const verifyEmail = async (email, otp) => {
+  const user = await User.findOne({ email });
+  
   if (!user) {
-    const error = new Error('Invalid or expired verification token');
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (user.isVerified) {
+    return { message: 'Email already verified' };
+  }
+
+  // Check if OTP matches and is not expired
+  if (user.otp !== otp || user.otpExpires < Date.now()) {
+    const error = new Error('Invalid or expired OTP');
     error.statusCode = 400;
     throw error;
   }
 
   user.isVerified = true;
   user.verifiedAt = new Date();
-  user.verificationToken = undefined;
-  user.verificationTokenExpires = undefined;
+  user.otp = undefined;
+  user.otpExpires = undefined;
   await user.save();
 
   // Send welcome email
@@ -130,28 +138,29 @@ export const resendVerification = async (email) => {
 
   if (!user) {
     // Don't reveal if user exists
-    return { message: 'If an account exists with this email, a verification link has been sent.' };
+    return { message: 'If an account exists with this email, a verification OTP has been sent.' };
   }
 
   if (user.isVerified) {
     return { message: 'This account is already verified. You can log in.' };
   }
 
-  const verificationToken = generateVerificationToken();
-  const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+  // Generate new OTP
+  const otp = generateOTP();
+  const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-  user.verificationToken = verificationToken;
-  user.verificationTokenExpires = verificationTokenExpires;
+  user.otp = otp;
+  user.otpExpires = otpExpires;
   await user.save();
 
   try {
-    await emailService.sendVerificationEmail(email, verificationToken, user.name);
+    await emailService.sendVerificationEmail(email, otp, user.name);
   } catch (err) {
     console.error('Failed to send verification email:', err);
     throw new Error('Failed to send verification email. Please try again.');
   }
 
-  return { message: 'Verification email sent. Check your inbox.' };
+  return { message: 'Verification OTP sent. Check your inbox.' };
 };
 
 export const googleLogin = async (idToken) => {

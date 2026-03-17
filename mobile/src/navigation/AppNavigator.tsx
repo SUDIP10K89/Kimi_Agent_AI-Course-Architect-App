@@ -4,7 +4,7 @@
  * Main navigation structure with Auth stack and Main (Tab) stack.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Home, BookOpen, Settings, PlusCircle, Globe } from 'lucide-react-native';
+import * as Linking from 'expo-linking';
 
 // Import screens (will be created next)
 import LoginScreen from '@/screens/LoginScreen';
@@ -32,6 +33,28 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const CoursesStack = createNativeStackNavigator<CoursesStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+// Deep link handler component - must be inside NavigationContainer
+const DeepLinkHandler: React.FC = () => {
+  // We'll use a simpler approach - check deep links in useEffect
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      console.log('[DEEP LINK] Received:', url);
+      // Deep links for email verification are no longer used - we now use OTP
+    };
+    
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
+    
+    return () => subscription.remove();
+  }, []);
+  
+  return null;
+};
 
 // Auth Navigator (when not logged in)
 const AuthNavigator: React.FC = () => {
@@ -262,6 +285,7 @@ const AppNavigator: React.FC = () => {
 
   return (
     <NavigationContainer theme={navigationTheme}>
+      <DeepLinkHandler />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainNavigator} />

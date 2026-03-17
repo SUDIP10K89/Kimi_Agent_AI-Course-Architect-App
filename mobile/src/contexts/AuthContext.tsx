@@ -15,7 +15,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (form: LoginForm) => Promise<void>;
-  signup: (form: SignupForm) => Promise<void>;
+  signup: (form: SignupForm) => Promise<AuthResponse | void>;
   logout: () => Promise<void>;
   registerLogoutCallback: (callback: () => void | Promise<void>) => void;
   error: string | null;
@@ -93,21 +93,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       setIsLoading(true);
       const response = await authApi.signup(form);
-      
+
       if (response.success) {
         // Check if email verification is required
         if (response.data?.requiresVerification) {
-          // Don't auto-login, just set error with message to show in UI
-          const message = 'Please check your email to verify your account before logging in.';
-          setError(message);
-          throw new Error(message);
+          // Return successfully - the UI will handle navigation to OTP screen
+          console.log('[AUTH DEBUG] Signup successful, verification required for:', response.data.user.email);
+          return response.data;
         }
 
         const authData: AuthResponse = {
           user: response.data.user,
           token: response.data.token,
         };
-        
+
         await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
         setUser(authData.user);
         setToken(authData.token);

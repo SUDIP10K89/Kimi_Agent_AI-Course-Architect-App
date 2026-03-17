@@ -45,30 +45,55 @@ const createTransporter = () => {
 const transporter = createTransporter();
 
 const APP_NAME = 'AI Course Architect';
-const APP_URL = process.env.APP_URL || 'http://localhost:5173';
+// Use mobile deep link scheme for verification - works with both Expo and web
+const MOBILE_SCHEME = process.env.MOBILE_DEEP_LINK || 'aicoursearchitect';
+const WEB_URL = process.env.APP_URL || 'http://localhost:5173';
+
+// Determine which URL to use based on environment
+const getVerificationUrl = (token) => {
+  // If MOBILE_DEEP_LINK is set, always use mobile scheme
+  if (process.env.MOBILE_DEEP_LINK) {
+    const url = `${MOBILE_SCHEME}://verify-email?token=${token}`;
+    console.log('[EMAIL] Using mobile deep link:', url);
+    return url;
+  }
+  // Otherwise use web URL
+  const url = `${WEB_URL}/verify-email?token=${token}`;
+  console.log('[EMAIL] Using web URL:', url);
+  return url;
+};
+
+// Determine which URL to use - include both for flexibility
+const getVerificationUrls = (token) => {
+  const webUrl = `${WEB_URL}/verify-email?token=${token}`;
+  // Always include mobile deep link since this is a mobile app
+  const mobileUrl = `${MOBILE_SCHEME}://verify-email?token=${token}`;
+  
+  console.log('[EMAIL] Verification URLs - Web:', webUrl, 'Mobile:', mobileUrl);
+  return { webUrl, mobileUrl };
+};
 
 /**
- * Send verification email to user
+ * Send verification email with OTP to user
  * @param {string} email - User's email address
- * @param {string} token - Verification token
+ * @param {string} otp - One-time password
  * @param {string} name - User's name
  */
-export const sendVerificationEmail = async (email, token, name) => {
-  const verificationUrl = `${APP_URL}/verify-email?token=${token}`;
-  
+export const sendVerificationEmail = async (email, otp, name) => {
   const mailOptions = {
     from: `"${APP_NAME}" <${process.env.SMTP_USER || 'noreply@coursearchitect.ai'}>`,
     to: email,
-    subject: `Verify your ${APP_NAME} account`,
+    subject: `Your ${APP_NAME} Verification Code`,
     text: `
 Hi ${name},
 
 Welcome to ${APP_NAME}!
 
-Please verify your email address by clicking the link below:
-${verificationUrl}
+Your verification code is: ${otp}
 
-This link will expire in 24 hours.
+This code will expire in 10 minutes.
+
+Enter this code in the app to verify your email address.
 
 If you didn't create an account, please ignore this email.
 
@@ -90,14 +115,16 @@ The ${APP_NAME} Team
   <div style="padding: 30px; background: #f9fafb; border-radius: 12px; margin-top: 20px;">
     <h2 style="color: #111827; margin-top: 0;">Hi ${name},</h2>
     
-    <p style="color: #6b7280;">Welcome to ${APP_NAME}! Please verify your email address to get started.</p>
+    <p style="color: #6b7280;">Welcome to ${APP_NAME}! Use the verification code below to verify your email address.</p>
     
-    <a href="${verificationUrl}" style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 20px 0;">Verify Email Address</a>
+    <div style="background: #fff; border: 2px solid #6366f1; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+      <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">Your verification code:</p>
+      <p style="color: #6366f1; font-size: 32px; font-weight: bold; margin: 0; letter-spacing: 8px;">${otp}</p>
+    </div>
     
-    <p style="color: #9ca3af; font-size: 14px;">This link will expire in 24 hours.</p>
+    <p style="color: #9ca3af; font-size: 14px;">This code will expire in 10 minutes.</p>
     
-    <p style="color: #9ca3af; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:</p>
-    <p style="color: #6366f1; font-size: 12px; word-break: break-all;">${verificationUrl}</p>
+    <p style="color: #9ca3af; font-size: 14px;">If you didn't create an account, please ignore this email.</p>
   </div>
   
   <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
@@ -110,7 +137,7 @@ The ${APP_NAME} Team
 
   try {
     const result = await transporter.sendMail(mailOptions);
-    console.log('[EMAIL] Verification email sent successfully to', email, 'MessageId:', result.messageId);
+    console.log('[EMAIL] Verification OTP sent successfully to', email, 'MessageId:', result.messageId);
     return result;
   } catch (error) {
     console.error('[EMAIL] Failed to send verification email to', email, error);

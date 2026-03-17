@@ -97,7 +97,7 @@ export const EMAIL_CONFIG = {
   SMTP_SECURE: process.env.SMTP_SECURE === 'true',
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
-  APP_URL: process.env.APP_URL || 'http://localhost:5173',
+  APP_URL: process.env.APP_URL || 'https://coursexai.vercel.app',
 };
 
 /**

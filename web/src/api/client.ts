@@ -106,7 +106,7 @@ export const apiGet = <T>(url: string, config?: AxiosRequestConfig) =>
   apiClient.get<T>(url, config);
 
 export const apiPost = <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-  apiClient.post<T>(url, data, config);
+  apiClient.post<T>(url, data, { ...config, validateStatus: () => true });
 
 export const apiPut = <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
   apiClient.put<T>(url, data, config);
