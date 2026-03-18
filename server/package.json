@@ -36,6 +36,8 @@
     "nodemailer": "^6.10.1",
     "openai": "^4.24.1",
     "puppeteer": "^21.6.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
     "winston": "^3.19.0"
   },

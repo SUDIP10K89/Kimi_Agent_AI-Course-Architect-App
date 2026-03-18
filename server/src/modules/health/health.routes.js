@@ -1,6 +1,6 @@
 /**
  * Health Check Routes
- * 
+ *
  * Provides endpoints for monitoring API and service health.
  */
 
@@ -12,9 +12,31 @@ import { checkHealth } from '../generation/services/adapters/youtube.adapter.js'
 const router = express.Router();
 
 /**
- * @route   GET /api/health
- * @desc    Basic health check
- * @access  Public
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Basic health check
+ *     description: Returns basic health status of the API
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: API is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 uptime:
+ *                   type: number
+ *                 environment:
+ *                   type: string
  */
 router.get('/', (req, res) => {
   res.json({
@@ -27,9 +49,29 @@ router.get('/', (req, res) => {
 });
 
 /**
- * @route   GET /api/health/detailed
- * @desc    Detailed health check with service status
- * @access  Public
+ * @swagger
+ * /health/detailed:
+ *   get:
+ *     summary: Detailed health check
+ *     description: Returns detailed health status including all dependent services
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: All services are healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 services:
+ *                   type: object
+ *       503:
+ *         description: One or more services are unhealthy
  */
 router.get('/detailed', async (req, res) => {
   try {

@@ -18,8 +18,12 @@ import {
   standardLimiter,
 } from '../shared/middleware/rateLimiter.js';
 import { logError, logInfo } from '../shared/utils/logger.js';
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "../docs/swagger.js";
 
 export const createApp = () => {
+
+
   const app = express();
 
   app.use(helmet({
@@ -77,6 +81,7 @@ export const createApp = () => {
   app.use('/api/courses/generate', generationLimiter);
   app.use('/api/courses', courseRoutes);
   app.use('/api/sse', generationRoutes);
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   app.get('/', (req, res) => {
     res.json({

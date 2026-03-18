@@ -10,7 +10,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
@@ -119,36 +118,38 @@ const LoginScreen: React.FC = () => {
   const displayError = localError || error;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView className="flex-1 bg-slate-50">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerClassName="flex-grow justify-center px-6 py-8"
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
+          <View className="items-center mb-10">
+            <View className="h-20 w-20 rounded-full bg-indigo-100 items-center justify-center mb-4">
               <GraduationCap size={48} color="#6366f1" />
             </View>
-            <Text style={styles.title}>AI Course Architect</Text>
-            <Text style={styles.subtitle}>Learn anything with AI-powered courses</Text>
+            <Text className="text-3xl font-bold text-slate-900 mb-2">AI Course Architect</Text>
+            <Text className="text-base text-slate-500 text-center">
+              Learn anything with AI-powered courses
+            </Text>
           </View>
 
           {/* Form */}
-          <View style={styles.form}>
+          <View className="bg-white rounded-2xl p-6 shadow-sm shadow-black/10 border border-slate-100">
             {displayError && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{displayError}</Text>
+              <View className="bg-rose-50 border border-rose-100 rounded-lg px-3 py-3 mb-4">
+                <Text className="text-rose-600 text-sm">{displayError}</Text>
               </View>
             )}
 
-            <View style={styles.inputContainer}>
-              <Mail size={20} color="#6b7280" style={styles.inputIcon} />
+            <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14 mb-4">
+              <Mail size={20} color="#6b7280" />
               <TextInput
-                style={styles.input}
+                className="flex-1 text-base text-slate-900 ml-3"
                 placeholder="Email"
                 placeholderTextColor="#9ca3af"
                 value={email}
@@ -159,10 +160,10 @@ const LoginScreen: React.FC = () => {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#6b7280" style={styles.inputIcon} />
+            <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14 mb-4">
+              <Lock size={20} color="#6b7280" />
               <TextInput
-                style={styles.input}
+                className="flex-1 text-base text-slate-900 ml-3"
                 placeholder="Password"
                 placeholderTextColor="#9ca3af"
                 value={password}
@@ -172,7 +173,9 @@ const LoginScreen: React.FC = () => {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+              className={`bg-indigo-500 rounded-xl h-14 flex-row items-center justify-center gap-2 mt-2 ${
+                isLoading ? 'opacity-70' : ''
+              }`}
               onPress={handleLogin}
               disabled={isLoading}
             >
@@ -180,7 +183,7 @@ const LoginScreen: React.FC = () => {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Text style={styles.buttonText}>Sign In</Text>
+                  <Text className="text-white text-base font-semibold">Sign In</Text>
                   <ArrowRight size={20} color="#fff" />
                 </>
               )}
@@ -189,12 +192,14 @@ const LoginScreen: React.FC = () => {
             {/* Resend Verification Option */}
             {showResendOption && resendStatus !== 'sent' && (
               <TouchableOpacity
-                style={[styles.resendButton, resendStatus === 'sending' && styles.buttonDisabled]}
+                className={`mt-4 flex-row items-center justify-center gap-2 py-3 ${
+                  resendStatus === 'sending' ? 'opacity-70' : ''
+                }`}
                 onPress={handleResendVerification}
                 disabled={resendStatus === 'sending'}
               >
                 <RefreshCw size={18} color="#6366f1" />
-                <Text style={styles.resendButtonText}>
+                <Text className="text-indigo-500 text-sm font-semibold">
                   {resendStatus === 'sending' ? 'Sending...' : 'Resend Verification Email'}
                 </Text>
               </TouchableOpacity>
@@ -203,27 +208,31 @@ const LoginScreen: React.FC = () => {
             {/* Also show resend option if user has entered email but not tried to login yet */}
             {!showResendOption && email.trim() && !isLoading && (
               <TouchableOpacity
-                style={styles.resendButton}
+                className="mt-4 flex-row items-center justify-center gap-2 py-3"
                 onPress={() => {
                   setShowResendOption(true);
                   setLocalError('Enter your password and try to login, or click below to resend verification email.');
                 }}
               >
                 <RefreshCw size={18} color="#6366f1" />
-                <Text style={styles.resendButtonText}>Didn't receive verification email?</Text>
+                <Text className="text-indigo-500 text-sm font-semibold">
+                  Didn't receive verification email?
+                </Text>
               </TouchableOpacity>
             )}
 
             {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
+            <View className="flex-row items-center my-5">
+              <View className="flex-1 h-px bg-slate-200" />
+              <Text className="text-slate-400 text-sm mx-4">or</Text>
+              <View className="flex-1 h-px bg-slate-200" />
             </View>
 
             {/* Google Button */}
             <TouchableOpacity
-              style={[styles.googleButton, isGoogleLoading && styles.buttonDisabled]}
+              className={`bg-white border border-slate-200 rounded-xl h-14 flex-row items-center justify-center gap-3 ${
+                isGoogleLoading ? 'opacity-70' : ''
+              }`}
               onPress={handleGoogleLogin}
               disabled={isGoogleLoading}
             >
@@ -231,27 +240,27 @@ const LoginScreen: React.FC = () => {
                 <ActivityIndicator color="#6366f1" />
               ) : (
                 <>
-                  <View style={styles.googleIconContainer}>
-                    <Text style={styles.googleIcon}>G</Text>
+                  <View className="h-6 w-6 rounded-full bg-white items-center justify-center shadow-sm">
+                    <Text className="text-[18px] font-bold text-blue-500">G</Text>
                   </View>
-                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  <Text className="text-slate-700 text-base font-medium">Continue with Google</Text>
                 </>
               )}
             </TouchableOpacity>
           </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account?</Text>
+          <View className="flex-row items-center justify-center mt-8 gap-2">
+            <Text className="text-slate-500 text-sm">Don't have an account?</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-              <Text style={styles.linkText}>Sign Up</Text>
+              <Text className="text-indigo-500 text-sm font-semibold">Sign Up</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.verifyFooter}>
-            <Text style={styles.footerText}>Already received an OTP?</Text>
+          <View className="flex-row items-center justify-center mt-3 gap-2">
+            <Text className="text-slate-500 text-sm">Already received an OTP?</Text>
             <TouchableOpacity onPress={handleGoToVerify}>
-              <Text style={styles.linkText}>Verify Email</Text>
+              <Text className="text-indigo-500 text-sm font-semibold">Verify Email</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -259,183 +268,5 @@ const LoginScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#eef2ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  form: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  errorContainer: {
-    backgroundColor: '#fef2f2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 14,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#111827',
-  },
-  button: {
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
-    height: 56,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resendButton: {
-    marginTop: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-  },
-  resendButtonText: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 32,
-    gap: 8,
-  },
-  verifyFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 12,
-    gap: 8,
-  },
-  footerText: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  linkText: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Divider styles
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#e5e7eb',
-  },
-  dividerText: {
-    color: '#9ca3af',
-    fontSize: 14,
-    marginHorizontal: 16,
-  },
-  // Google button styles
-  googleButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    height: 56,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  googleIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  googleIcon: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#4285F4',
-  },
-  googleButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-});
 
 export default LoginScreen;

@@ -1,6 +1,6 @@
 /**
  * Course Routes
- * 
+ *
  * Defines all API endpoints for course-related operations.
  * Routes are mapped to controller functions.
  */
@@ -12,121 +12,415 @@ import { protect } from '../auth/auth.middleware.js';
 const router = express.Router();
 
 /**
- * @route   POST /api/courses/generate
- * @desc    Generate a new course from topic
- * @access  Public
+ * @swagger
+ * tags:
+ *   name: Courses
+ *   description: Course management and generation endpoints
+ */
+
+/**
+ * @swagger
+ * /courses/generate:
+ *   post:
+ *     summary: Generate a new course from a topic
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - topic
+ *             properties:
+ *               topic:
+ *                 type: string
+ *               difficulty:
+ *                 type: string
+ *                 enum: [beginner, intermediate, advanced]
+ *     responses:
+ *       201:
+ *         description: Course generation started successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
  */
 router.post('/generate', protect, courseController.generateCourse);
 
 /**
- * @route   GET /api/courses
- * @desc    Get all courses with pagination and filters
- * @access  Public
+ * @swagger
+ * /courses:
+ *   get:
+ *     summary: Get all courses with pagination
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: List of courses
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/', protect, courseController.getAllCourses);
 
 /**
- * @route   GET /api/courses/stats/overview
- * @desc    Get course statistics
- * @access  Public
+ * @swagger
+ * /courses/stats/overview:
+ *   get:
+ *     summary: Get course statistics
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Course statistics overview
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/stats/overview', protect, courseController.getCourseStats);
 
 /**
- * @route   GET /api/courses/recent
- * @desc    Get recent courses
- * @access  Public
+ * @swagger
+ * /courses/recent:
+ *   get:
+ *     summary: Get recent courses
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of recent courses
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/recent', protect, courseController.getRecentCourses);
 
 /**
- * @route   GET /api/courses/public
- * @desc    Get public courses with search
- * @access  Public
+ * @swagger
+ * /courses/public:
+ *   get:
+ *     summary: Get public courses with search
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search query
+ *     responses:
+ *       200:
+ *         description: List of public courses
  */
 router.get('/public', courseController.getPublicCourses);
 
 /**
- * @route   GET /api/courses/:id
- * @desc    Get single course by ID
- * @access  Public
+ * @swagger
+ * /courses/{id}:
+ *   get:
+ *     summary: Get single course by ID
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course details
+ *       404:
+ *         description: Course not found
  */
 router.get('/:id', protect, courseController.getCourseById);
 
 /**
- * @route   GET /api/courses/:id/status
- * @desc    Get course generation status
- * @access  Public
+ * @swagger
+ * /courses/{id}/status:
+ *   get:
+ *     summary: Get course generation status
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Course generation status
+ *       404:
+ *         description: Course not found
  */
 router.get('/:id/status', protect, courseController.getCourseStatus);
 
 /**
- * @route   POST /api/courses/:id/continue
- * @desc    Continue/Resume content generation for a course
- * @access  Public
+ * @swagger
+ * /courses/{id}/continue:
+ *   post:
+ *     summary: Continue/Resume course generation
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Generation resumed
+ *       404:
+ *         description: Course not found
  */
 router.post('/:id/continue', protect, courseController.continueCourseGeneration);
 
 /**
- * @route   POST /api/courses/:id/modules/:moduleId/topics/:topicId/generate
- * @desc    Generate content for a specific micro-topic
- * @access  Public
+ * @swagger
+ * /courses/{id}/modules/{moduleId}/topics/{topicId}/generate:
+ *   post:
+ *     summary: Generate content for a micro-topic
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: topicId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Content generated
+ *       404:
+ *         description: Resource not found
  */
 router.post('/:id/modules/:moduleId/topics/:topicId/generate', protect, courseController.generateMicroTopicContent);
 
 /**
- * @route   POST /api/courses/:id/modules/:moduleId/topics/:topicId/complete
- * @desc    Mark micro-topic as complete
- * @access  Public
+ * @swagger
+ * /courses/{id}/modules/{moduleId}/topics/{topicId}/complete:
+ *   post:
+ *     summary: Mark micro-topic as complete
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: topicId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Topic marked as complete
  */
 router.post('/:id/modules/:moduleId/topics/:topicId/complete', protect, courseController.completeMicroTopic);
 
 /**
- * @route   DELETE /api/courses/:id/modules/:moduleId/topics/:topicId/complete
- * @desc    Undo micro-topic completion (mark as incomplete)
- * @access  Public
+ * @swagger
+ * /courses/{id}/modules/{moduleId}/topics/{topicId}/complete:
+ *   delete:
+ *     summary: Mark micro-topic as incomplete
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: topicId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Topic marked as incomplete
  */
 router.delete('/:id/modules/:moduleId/topics/:topicId/complete', protect, courseController.uncompleteMicroTopic);
 
 /**
- * @route   POST /api/courses/:id/modules/:moduleId/regenerate
- * @desc    Regenerate a module
- * @access  Public
+ * @swagger
+ * /courses/{id}/modules/{moduleId}/regenerate:
+ *   post:
+ *     summary: Regenerate a module
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: moduleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Module regeneration started
  */
 router.post('/:id/modules/:moduleId/regenerate', protect, courseController.regenerateModule);
 
 /**
- * @route   POST /api/courses/:id/archive
- * @desc    Archive a course
- * @access  Public
+ * @swagger
+ * /courses/{id}/archive:
+ *   post:
+ *     summary: Archive a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course archived
  */
 router.post('/:id/archive', protect, courseController.archiveCourse);
 
 /**
- * @route   GET /api/courses/:id/export
- * @desc    Export course data
- * @access  Public
+ * @swagger
+ * /courses/{id}/export:
+ *   get:
+ *     summary: Export course data
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course data exported
  */
 router.get('/:id/export', protect, courseController.exportCourse);
 
 /**
- * @route   DELETE /api/courses/:id
- * @desc    Delete a course
- * @access  Public
+ * @swagger
+ * /courses/{id}:
+ *   delete:
+ *     summary: Delete a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course deleted
+ *       404:
+ *         description: Course not found
  */
 router.delete('/:id', protect, courseController.deleteCourse);
 
 /**
- * @route   PATCH /api/courses/:id/visibility
- * @desc    Update course visibility (public/private)
- * @access  Public
+ * @swagger
+ * /courses/{id}/visibility:
+ *   patch:
+ *     summary: Update course visibility
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               isPublic:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Visibility updated
  */
 router.patch('/:id/visibility', protect, courseController.updateCourseVisibility);
 
 /**
- * @route   POST /api/courses/:id/fork
- * @desc    Fork (copy) a public course to user's account
- * @access  Public
+ * @swagger
+ * /courses/{id}/fork:
+ *   post:
+ *     summary: Fork a public course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       201:
+ *         description: Course forked successfully
  */
 router.post('/:id/fork', protect, courseController.forkCourse);
 
