@@ -1,14 +1,13 @@
-/**
+﻿/**
  * Courses List Screen
  *
  * Displays all courses with search and filter options.
  */
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
   FlatList,
   TouchableOpacity,
@@ -18,7 +17,6 @@ import {
   Alert,
 } from 'react-native';
 import { useCourse } from '@/contexts/CourseContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Search, BookOpen, Clock, ChevronRight, Archive, CloudOff, RefreshCw, Globe } from 'lucide-react-native';
@@ -30,8 +28,6 @@ type CoursesNavigationProp = NativeStackNavigationProp<CoursesStackParamList, 'C
 const CoursesListScreen: React.FC = () => {
   const navigation = useNavigation<CoursesNavigationProp>();
   const { courses, fetchCourses, archiveCourse, isLoading, syncState } = useCourse();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -102,82 +98,84 @@ const CoursesListScreen: React.FC = () => {
   const getCourseCount = useCallback((status: CourseListFilter) => filterCourses(status).length, [filterCourses]);
   const filteredCourses = filterCourses(activeTab);
 
-  const renderCourseCard = ({ item }: { item: Course }) => (
-    <TouchableOpacity style={styles.courseCard} onPress={() => handleCoursePress(item)}>
-      <View style={styles.courseIcon}>
-        <BookOpen size={24} color={colors.primary} />
-      </View>
-      <View style={styles.courseContent}>
-        <View style={styles.cardHeader}>
-          <View
-            style={[
-              styles.statusBadge,
-              item.progress.percentage === 100
-                ? styles.statusBadgeDone
-                : item.progress.percentage > 0
-                  ? styles.statusBadgeActive
-                  : styles.statusBadgeNew,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                item.progress.percentage === 100
-                  ? styles.statusBadgeTextDone
-                  : item.progress.percentage > 0
-                    ? styles.statusBadgeTextActive
-                    : styles.statusBadgeTextNew,
-              ]}
-            >
-              {item.progress.percentage === 100 ? 'Completed' : item.progress.percentage > 0 ? 'In Progress' : 'Not Started'}
+  const renderCourseCard = ({ item }: { item: Course }) => {
+    const statusLabel = item.progress.percentage === 100 ? 'Completed' : item.progress.percentage > 0 ? 'In Progress' : 'Not Started';
+
+    const statusClass = item.progress.percentage === 100
+      ? 'bg-emerald-500/10 border-emerald-500/30'
+      : item.progress.percentage > 0
+        ? 'bg-indigo-500/10 border-indigo-500/30'
+        : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700';
+
+    const statusTextClass = item.progress.percentage === 100
+      ? 'text-emerald-600 dark:text-emerald-300'
+      : item.progress.percentage > 0
+        ? 'text-indigo-600 dark:text-indigo-300'
+        : 'text-slate-600 dark:text-slate-300';
+
+    const difficultyClass = item.difficulty === 'beginner'
+      ? 'bg-emerald-100 text-emerald-700'
+      : item.difficulty === 'intermediate'
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-rose-100 text-rose-700';
+
+    return (
+      <TouchableOpacity className="flex-row bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 mb-3" onPress={() => handleCoursePress(item)}>
+        <View className="h-12 w-12 rounded-xl bg-indigo-500/10 items-center justify-center mr-3">
+          <BookOpen size={22} color="#6366f1" />
+        </View>
+        <View className="flex-1">
+          <View className="flex-row items-center flex-wrap gap-2 mb-2">
+            <View className={`px-3 py-1 rounded-full border ${statusClass}`}>
+              <Text className={`text-xs font-semibold ${statusTextClass}`}>{statusLabel}</Text>
+            </View>
+            {item.isArchived && (
+              <View className="flex-row items-center gap-1 bg-amber-100 dark:bg-amber-500/20 rounded-full px-2 py-1">
+                <Archive size={12} color="#92400e" />
+                <Text className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">Archived</Text>
+              </View>
+            )}
+          </View>
+          <Text className="text-slate-900 dark:text-white text-base font-semibold" numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text className="text-slate-500 dark:text-slate-400 text-sm mt-1" numberOfLines={2}>
+            {item.description}
+          </Text>
+          <View className="flex-row items-center gap-3 mt-2">
+            <View className="flex-row items-center gap-1">
+              <Clock size={14} color="#94a3b8" />
+              <Text className="text-slate-500 dark:text-slate-400 text-xs">{item.estimatedDuration} min</Text>
+            </View>
+            <View className={`px-2 py-0.5 rounded-full ${difficultyClass}`}>
+              <Text className="text-xs font-semibold capitalize">{item.difficulty}</Text>
+            </View>
+          </View>
+          <View className="mt-3">
+            <View className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+              <View className="h-2 bg-indigo-600 dark:bg-indigo-500 rounded-full" style={{ width: `${item.progress.percentage}%` }} />
+            </View>
+            <Text className="text-slate-500 dark:text-slate-400 text-xs mt-1">
+              {item.progress.completedMicroTopics}/{item.progress.totalMicroTopics} lessons
             </Text>
           </View>
-          {item.isArchived && (
-            <View style={styles.archivedBadge}>
-              <Archive size={12} color="#92400e" />
-              <Text style={styles.archivedBadgeText}>Archived</Text>
-            </View>
+          {!item.isArchived && (
+            <TouchableOpacity className="mt-3 flex-row items-center gap-2" onPress={() => handleArchiveCourse(item)}>
+              <Archive size={14} color="#64748b" />
+              <Text className="text-slate-500 dark:text-slate-400 text-xs font-semibold">Archive</Text>
+            </TouchableOpacity>
           )}
         </View>
-        <Text style={styles.courseTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={styles.courseDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <View style={styles.courseMeta}>
-          <View style={styles.metaItem}>
-            <Clock size={14} color={colors.textMuted} />
-            <Text style={styles.metaText}>{item.estimatedDuration} min</Text>
-          </View>
-          <View style={[styles.difficultyBadge, styles[`difficulty_${item.difficulty}`]]}>
-            <Text style={[styles.difficultyText, styles[`difficultyText_${item.difficulty}`]]}>{item.difficulty}</Text>
-          </View>
-        </View>
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${item.progress.percentage}%` }]} />
-          </View>
-          <Text style={styles.progressText}>
-            {item.progress.completedMicroTopics}/{item.progress.totalMicroTopics} lessons
-          </Text>
-        </View>
-        {!item.isArchived && (
-          <TouchableOpacity style={styles.archiveAction} onPress={() => handleArchiveCourse(item)}>
-            <Archive size={14} color={colors.textMuted} />
-            <Text style={styles.archiveActionText}>Archive</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      <ChevronRight size={20} color={colors.textMuted} />
-    </TouchableOpacity>
-  );
+        <ChevronRight size={18} color="#94a3b8" />
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyList = () => (
-    <View style={styles.emptyContainer}>
-      <BookOpen size={64} color={colors.border} />
-      <Text style={styles.emptyTitle}>No courses yet</Text>
-      <Text style={styles.emptyDescription}>
+    <View className="items-center justify-center pt-20">
+      <BookOpen size={64} color="#e2e8f0" />
+      <Text className="text-slate-900 dark:text-white text-lg font-semibold mt-4">No courses yet</Text>
+      <Text className="text-slate-500 dark:text-slate-400 text-sm text-center mt-2 px-10">
         {activeTab === 'all'
           ? 'Start learning by generating your first AI-powered course!'
           : 'No courses match this learning state yet.'}
@@ -186,32 +184,31 @@ const CoursesListScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={20} color={colors.textMuted} style={styles.searchIcon} />
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+      <View className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-row items-center gap-3">
+        <View className="flex-row items-center flex-1 bg-slate-100 dark:bg-slate-800 rounded-xl px-4">
+          <Search size={18} color="#94a3b8" />
           <TextInput
-            style={styles.searchInput}
+            className="flex-1 py-3 text-slate-900 dark:text-white text-base ml-2"
             placeholder="Search courses..."
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor="#94a3b8"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
-        <TouchableOpacity 
-          style={[styles.exploreButton, { backgroundColor: colors.primary }]}
-          onPress={() => navigation.navigate('PublicCourses')}
-        >
-          <Globe size={20} color="#fff" />
+        <TouchableOpacity className="h-11 w-11 rounded-xl bg-indigo-600 dark:bg-indigo-500 items-center justify-center" onPress={() => navigation.navigate('PublicCourses')}>
+          <Globe size={20} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
       {(syncState.isOffline || syncState.usingCachedCourses || syncState.hasPendingSync) && (
-        <View style={styles.offlineBanner}>
+        <View className="flex-row items-start gap-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 mx-4 mt-3">
           <CloudOff size={16} color="#b45309" />
-          <View style={styles.offlineBannerContent}>
-            <Text style={styles.offlineBannerTitle}>{syncState.isOffline ? 'Offline mode' : 'Showing cached courses'}</Text>
-            <Text style={styles.offlineBannerText}>
+          <View className="flex-1">
+            <Text className="text-amber-800 dark:text-amber-200 text-xs font-semibold">
+              {syncState.isOffline ? 'Offline mode' : 'Showing cached courses'}
+            </Text>
+            <Text className="text-amber-700 dark:text-amber-200 text-xs mt-1">
               {syncState.isOffline
                 ? 'You are viewing saved courses. Reconnect to refresh progress and archive changes.'
                 : 'Recent changes may still need to sync.'}
@@ -221,20 +218,20 @@ const CoursesListScreen: React.FC = () => {
         </View>
       )}
 
-      <View style={styles.tabsContainer}>
-        {[
+      <View className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-row flex-wrap gap-2">
+        {([
           ['all', 'All'],
           ['not-started', 'New'],
           ['in-progress', 'Active'],
           ['completed', 'Done'],
-        ].map(([value, label]) => (
+        ] as Array<[CourseListFilter, string]>).map(([value, label]) => (
           <TouchableOpacity
             key={value}
-            style={[styles.tab, activeTab === value && styles.activeTab]}
-            onPress={() => setActiveTab(value as CourseListFilter)}
+            className={`px-4 py-2 rounded-full ${activeTab === value ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-slate-100 dark:bg-slate-800'}`}
+            onPress={() => setActiveTab(value)}
           >
-            <Text style={[styles.tabText, activeTab === value && styles.activeTabText]}>
-              {label} ({getCourseCount(value as CourseListFilter)})
+            <Text className={`text-xs font-semibold ${activeTab === value ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+              {label} ({getCourseCount(value)})
             </Text>
           </TouchableOpacity>
         ))}
@@ -244,303 +241,18 @@ const CoursesListScreen: React.FC = () => {
         data={filteredCourses}
         renderItem={renderCourseCard}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={{ padding: 16, paddingBottom: 36 }}
         ListEmptyComponent={!isLoading ? renderEmptyList : null}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
       />
 
       {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View className="absolute inset-0 items-center justify-center bg-slate-900/10">
+          <ActivityIndicator size="large" color="#6366f1" />
         </View>
       )}
     </SafeAreaView>
   );
 };
-
-const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    searchContainer: {
-      padding: 16,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: 12,
-      paddingHorizontal: 16,
-    },
-    searchIcon: {
-      marginRight: 12,
-    },
-    searchInput: {
-      flex: 1,
-      paddingVertical: 12,
-      fontSize: 16,
-      color: colors.text,
-    },
-    exploreButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 12,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    offlineBanner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginHorizontal: 16,
-      marginTop: 12,
-      padding: 12,
-      backgroundColor: '#fffbeb',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#fcd34d',
-    },
-    offlineBannerContent: {
-      flex: 1,
-    },
-    offlineBannerTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: '#92400e',
-    },
-    offlineBannerText: {
-      fontSize: 12,
-      color: '#92400e',
-      marginTop: 2,
-      lineHeight: 17,
-    },
-    tabsContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    tab: {
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      borderRadius: 20,
-      marginRight: 8,
-      backgroundColor: colors.surfaceMuted,
-      marginBottom: 8,
-    },
-    activeTab: {
-      backgroundColor: colors.primary,
-    },
-    tabText: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.textMuted,
-    },
-    activeTabText: {
-      color: colors.textInverse,
-    },
-    listContent: {
-      padding: 16,
-      paddingBottom: 36,
-    },
-    courseCard: {
-      flexDirection: 'row',
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-    },
-    courseIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 12,
-      backgroundColor: colors.primarySoft,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    },
-    courseContent: {
-      flex: 1,
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: 8,
-      marginBottom: 8,
-    },
-    statusBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 999,
-    },
-    statusBadgeNew: {
-      backgroundColor: colors.surfaceMuted,
-    },
-    statusBadgeActive: {
-      backgroundColor: colors.primarySoft,
-    },
-    statusBadgeDone: {
-      backgroundColor: colors.successSoft,
-    },
-    statusBadgeText: {
-      fontSize: 11,
-      fontWeight: '600',
-    },
-    statusBadgeTextNew: {
-      color: colors.textMuted,
-    },
-    statusBadgeTextActive: {
-      color: colors.primary,
-    },
-    statusBadgeTextDone: {
-      color: colors.success,
-    },
-    archivedBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      backgroundColor: '#fef3c7',
-      borderRadius: 999,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-    },
-    archivedBadgeText: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: '#92400e',
-    },
-    courseTitle: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 4,
-    },
-    courseDescription: {
-      fontSize: 14,
-      color: colors.textMuted,
-      marginBottom: 8,
-    },
-    courseMeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 8,
-    },
-    metaItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    metaText: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    difficultyBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 10,
-    },
-    difficulty_beginner: {
-      backgroundColor: '#d1fae5',
-    },
-    difficulty_intermediate: {
-      backgroundColor: '#fef3c7',
-    },
-    difficulty_advanced: {
-      backgroundColor: '#fee2e2',
-    },
-    difficultyText: {
-      fontSize: 12,
-      fontWeight: '500',
-      textTransform: 'capitalize',
-    },
-    difficultyText_beginner: {
-      color: '#059669',
-    },
-    difficultyText_intermediate: {
-      color: '#d97706',
-    },
-    difficultyText_advanced: {
-      color: '#dc2626',
-    },
-    progressContainer: {
-      marginTop: 4,
-    },
-    progressBar: {
-      height: 4,
-      backgroundColor: colors.border,
-      borderRadius: 2,
-      marginBottom: 4,
-    },
-    progressFill: {
-      height: '100%',
-      backgroundColor: colors.primary,
-      borderRadius: 2,
-    },
-    progressText: {
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    archiveAction: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      alignSelf: 'flex-start',
-      marginTop: 10,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      borderRadius: 999,
-      backgroundColor: colors.surfaceMuted,
-    },
-    archiveActionText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.textMuted,
-    },
-    emptyContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingTop: 80,
-    },
-    emptyTitle: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: colors.text,
-      marginTop: 16,
-    },
-    emptyDescription: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: 8,
-      paddingHorizontal: 40,
-    },
-    loadingContainer: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(17,24,39,0.2)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-  });
 
 export default CoursesListScreen;

@@ -443,8 +443,9 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const updateProgress = async (courseId: string, moduleId: string, microTopicId: string, isCompleted: boolean) => {
     try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
       const response = isCompleted
-        ? await courseApi.completeMicroTopic(courseId, moduleId, microTopicId)
+        ? await courseApi.completeMicroTopic(courseId, moduleId, microTopicId, timezone)
         : await courseApi.uncompleteMicroTopic(courseId, moduleId, microTopicId);
       
       if (response.success) {

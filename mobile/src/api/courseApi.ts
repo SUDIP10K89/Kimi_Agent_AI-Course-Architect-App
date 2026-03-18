@@ -114,10 +114,12 @@ export const generateMicroTopicContent = async (
 export const completeMicroTopic = async (
   courseId: string,
   moduleId: string,
-  topicId: string
+  topicId: string,
+  timezone?: string
 ): Promise<ApiResponse<{ progress: Course['progress'] }>> => {
   const response = await apiPost<ApiResponse<{ progress: Course['progress'] }>>(
-    `/courses/${courseId}/modules/${moduleId}/topics/${topicId}/complete`
+    `/courses/${courseId}/modules/${moduleId}/topics/${topicId}/complete`,
+    timezone ? { timezone } : undefined
   );
   return response.data;
 };

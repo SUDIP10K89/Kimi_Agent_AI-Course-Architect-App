@@ -7,6 +7,7 @@
 
 import { logError, logInfo } from '../../shared/utils/logger.js';
 import * as generationService from '../generation/generation.service.js';
+import * as userService from '../users/user.service.js';
 import Course from './course.model.js';
 import * as courseService from './course.service.js';
 
@@ -276,7 +277,23 @@ export const completeMicroTopic = async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
 
+    const module = course.modules.id(moduleId);
+    if (!module) {
+      throw new Error('Module not found');
+    }
+
+    const microTopic = module.microTopics.id(topicId);
+    if (!microTopic) {
+      throw new Error('Micro-topic not found');
+    }
+
+    const wasCompleted = microTopic.isCompleted;
     const updatedCourse = await courseService.completeMicroTopic(id, moduleId, topicId);
+
+    if (!wasCompleted) {
+      const timeZone = req.body?.timezone;
+      await userService.updateUserStreak(user._id, { timeZone });
+    }
 
     res.json({
       success: true,

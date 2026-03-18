@@ -3,6 +3,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Theme } from '@/types';
 
@@ -76,7 +77,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const storedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (storedTheme === 'light' || storedTheme === 'dark') {
           setThemeState(storedTheme);
+          Appearance.setColorScheme(storedTheme);
+          return;
         }
+
+        Appearance.setColorScheme('light');
       } finally {
         setIsLoading(false);
       }
@@ -87,6 +92,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setTheme = async (nextTheme: Theme) => {
     setThemeState(nextTheme);
+    Appearance.setColorScheme(nextTheme);
     await AsyncStorage.setItem(THEME_STORAGE_KEY, nextTheme);
   };
 

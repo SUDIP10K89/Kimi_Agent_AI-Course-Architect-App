@@ -27,6 +27,27 @@ export const getSettings = async (req, res, next) => {
   }
 };
 
+export const getMe = async (req, res, next) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Not authorized' });
+    }
+
+    const profile = await userService.getUserProfile(user._id);
+    res.json({
+      success: true,
+      data: { user: profile },
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ success: false, error: error.message });
+    }
+
+    next(error);
+  }
+};
+
 export const updateSettings = async (req, res, next) => {
   try {
     const user = req.user;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Verify Email Screen
  * 
  * Screen for email verification using OTP.
@@ -8,7 +8,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
@@ -110,28 +109,28 @@ const VerifyEmailScreen: React.FC = () => {
     switch (status) {
       case 'verifying':
         return (
-          <View style={styles.statusContainer}>
+          <View className="items-center w-full">
             <ActivityIndicator size="large" color="#6366f1" />
-            <Text style={styles.message}>{message}</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-base text-center mt-4 px-5">{message}</Text>
           </View>
         );
 
       case 'success':
         return (
-          <View style={styles.statusContainer}>
+          <View className="items-center w-full">
             <CheckCircle size={64} color="#10b981" />
-            <Text style={styles.message}>{message}</Text>
-            <Text style={styles.successText}>Redirecting to home...</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-base text-center mt-4 px-5">{message}</Text>
+            <Text className="text-emerald-600 dark:text-emerald-300 text-sm mt-2">Redirecting to home...</Text>
           </View>
         );
 
       case 'error':
         return (
-          <View style={styles.statusContainer}>
+          <View className="items-center w-full">
             <AlertCircle size={64} color="#ef4444" />
-            <Text style={styles.message}>{message}</Text>
-            <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.buttonText}>Back to Login</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-base text-center mt-4 px-5">{message}</Text>
+            <TouchableOpacity className="bg-indigo-600 dark:bg-indigo-500 rounded-xl py-3 px-6 mt-5" onPress={() => navigation.navigate('Login')}>
+              <Text className="text-white font-semibold">Back to Login</Text>
             </TouchableOpacity>
           </View>
         );
@@ -140,14 +139,14 @@ const VerifyEmailScreen: React.FC = () => {
       case 'idle':
       default:
         return (
-          <View style={styles.statusContainer}>
+          <View className="items-center w-full">
             <Mail size={64} color="#6366f1" />
-            <Text style={styles.title}>Verify Your Email</Text>
-            <Text style={styles.message}>{message}</Text>
+            <Text className="text-slate-900 dark:text-white text-2xl font-bold mt-4">Verify Your Email</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-base text-center mt-3 px-5">{message}</Text>
 
-            <View style={styles.inputContainer}>
+            <View className="w-full mt-5">
               <TextInput
-                style={styles.input}
+                className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 text-slate-900 dark:text-white text-base"
                 placeholder="Enter your email"
                 placeholderTextColor="#9ca3af"
                 value={email}
@@ -158,9 +157,9 @@ const VerifyEmailScreen: React.FC = () => {
               />
             </View>
 
-            <View style={styles.inputContainer}>
+            <View className="w-full mt-4">
               <TextInput
-                style={styles.input}
+                className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-4 text-slate-900 dark:text-white text-base"
                 placeholder="Enter 6-digit OTP"
                 placeholderTextColor="#9ca3af"
                 value={otp}
@@ -171,25 +170,25 @@ const VerifyEmailScreen: React.FC = () => {
             </View>
 
             <TouchableOpacity
-              style={styles.button}
+              className="bg-indigo-600 dark:bg-indigo-500 rounded-xl py-3 px-6 mt-5 w-full items-center"
               onPress={handleVerify}
             >
-              <Text style={styles.buttonText}>Verify Email</Text>
+              <Text className="text-white font-semibold">Verify Email</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.resendButton}
+              className="mt-4 flex-row items-center justify-center gap-2 py-3"
               onPress={handleResend}
             >
               <RefreshCw size={18} color="#6366f1" />
-              <Text style={styles.resendButtonText}>Resend OTP</Text>
+              <Text className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">Resend OTP</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.linkButton}
+              className="mt-2 py-2"
               onPress={() => navigation.navigate('Login')}
             >
-              <Text style={styles.linkText}>Back to Login</Text>
+              <Text className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">Back to Login</Text>
             </TouchableOpacity>
           </View>
         );
@@ -197,9 +196,9 @@ const VerifyEmailScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.logoContainer}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+      <View className="flex-1 justify-center items-center px-6">
+        <View className="h-20 w-20 rounded-full bg-indigo-100 dark:bg-indigo-500/20 items-center justify-center mb-6">
           <GraduationCap size={48} color="#6366f1" />
         </View>
         {renderContent()}
@@ -207,103 +206,5 @@ const VerifyEmailScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#eef2ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  statusContainer: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  message: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginTop: 16,
-    paddingHorizontal: 20,
-  },
-  successText: {
-    fontSize: 14,
-    color: '#10b981',
-    marginTop: 8,
-  },
-  inputContainer: {
-    width: '100%',
-    marginTop: 20,
-  },
-  input: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#111827',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  button: {
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 20,
-    width: '100%',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  linkButton: {
-    marginTop: 16,
-    padding: 8,
-  },
-  linkText: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  resendButton: {
-    marginTop: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-  },
-  resendButtonText: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
 
 export default VerifyEmailScreen;

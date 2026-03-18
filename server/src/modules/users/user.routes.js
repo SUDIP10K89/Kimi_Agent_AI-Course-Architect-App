@@ -13,6 +13,13 @@ import { testSettingsValidation, updateSettingsValidation } from './user.validat
 const router = express.Router();
 
 /**
+ * @route   GET /api/users/me
+ * @desc    Get current user's profile (including streak)
+ * @access  Private
+ */
+router.get('/me', protect, userController.getMe);
+
+/**
  * @route   GET /api/users/settings
  * @desc    Get current user's settings
  * @access  Private

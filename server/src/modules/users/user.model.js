@@ -72,6 +72,27 @@ const userSchema = new mongoose.Schema(
         default: false,
       },
     },
+    timezone: {
+      type: String,
+      default: 'UTC',
+      trim: true,
+    },
+    streak: {
+      current: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      longest: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      lastCompletedDate: {
+        type: String,
+        default: null,
+      },
+    },
   },
   {
     timestamps: true,

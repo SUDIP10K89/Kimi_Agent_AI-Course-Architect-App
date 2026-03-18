@@ -8,6 +8,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User, LoginForm, SignupForm, AuthResponse } from '@/types';
 import * as authApi from '@/api/authApi';
+import * as userApi from '@/api/userApi';
 
 interface AuthContextType {
   user: User | null;
@@ -17,6 +18,7 @@ interface AuthContextType {
   login: (form: LoginForm) => Promise<void>;
   signup: (form: SignupForm) => Promise<AuthResponse | void>;
   completeAuth: (auth: AuthResponse) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
   registerLogoutCallback: (callback: () => void | Promise<void>) => void;
   error: string | null;
@@ -139,6 +141,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await userApi.getMe();
+      if (response.success) {
+        const stored = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
+        const authData: AuthResponse = stored
+          ? JSON.parse(stored)
+          : { user: response.data.user, token: token || '' };
+
+        const nextAuth: AuthResponse = {
+          user: response.data.user,
+          token: authData.token,
+        };
+
+        await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextAuth));
+        setUser(response.data.user);
+      }
+    } catch (error) {
+      console.log('[AUTH DEBUG] Failed to refresh user profile:', error);
+    }
+  }, [token]);
+
   const logout = async () => {
     console.log('[AUTH DEBUG] Logout called');
     try {
@@ -168,6 +192,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         signup,
         completeAuth,
+        refreshUser,
         logout,
         registerLogoutCallback,
         error,

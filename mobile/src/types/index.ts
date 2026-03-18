@@ -156,12 +156,20 @@ export interface ApiResponse<T> {
 // Authentication Types
 // ============================================
 
+export interface Streak {
+  current: number;
+  longest: number;
+  lastCompletedDate?: string | null;
+}
+
 export interface User {
   _id: string;
   name: string;
   email: string;
   isVerified?: boolean;
   googleId?: string;
+  timezone?: string;
+  streak?: Streak;
 }
 
 export interface LoginForm {

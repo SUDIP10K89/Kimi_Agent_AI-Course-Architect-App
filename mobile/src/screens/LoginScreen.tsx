@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Login Screen
  * 
  * User authentication screen with email, password, and Google OAuth.
@@ -118,7 +118,7 @@ const LoginScreen: React.FC = () => {
   const displayError = localError || error;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -129,27 +129,27 @@ const LoginScreen: React.FC = () => {
         >
           {/* Header */}
           <View className="items-center mb-10">
-            <View className="h-20 w-20 rounded-full bg-indigo-100 items-center justify-center mb-4">
+            <View className="h-20 w-20 rounded-full bg-indigo-100 dark:bg-indigo-500/20 items-center justify-center mb-4">
               <GraduationCap size={48} color="#6366f1" />
             </View>
-            <Text className="text-3xl font-bold text-slate-900 mb-2">AI Course Architect</Text>
-            <Text className="text-base text-slate-500 text-center">
+            <Text className="text-3xl font-bold text-slate-900 dark:text-white mb-2">AI Course Architect</Text>
+            <Text className="text-base text-slate-500 dark:text-slate-400 text-center">
               Learn anything with AI-powered courses
             </Text>
           </View>
 
           {/* Form */}
-          <View className="bg-white rounded-2xl p-6 shadow-sm shadow-black/10 border border-slate-100">
+          <View className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm shadow-black/10 border border-slate-100 dark:border-slate-800">
             {displayError && (
-              <View className="bg-rose-50 border border-rose-100 rounded-lg px-3 py-3 mb-4">
-                <Text className="text-rose-600 text-sm">{displayError}</Text>
+              <View className="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/30 rounded-lg px-3 py-3 mb-4">
+                <Text className="text-rose-600 dark:text-rose-200 text-sm">{displayError}</Text>
               </View>
             )}
 
-            <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14 mb-4">
+            <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4 h-14 mb-4">
               <Mail size={20} color="#6b7280" />
               <TextInput
-                className="flex-1 text-base text-slate-900 ml-3"
+                className="flex-1 text-base text-slate-900 dark:text-white ml-3"
                 placeholder="Email"
                 placeholderTextColor="#9ca3af"
                 value={email}
@@ -160,10 +160,10 @@ const LoginScreen: React.FC = () => {
               />
             </View>
 
-            <View className="flex-row items-center bg-slate-100 rounded-xl px-4 h-14 mb-4">
+            <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4 h-14 mb-4">
               <Lock size={20} color="#6b7280" />
               <TextInput
-                className="flex-1 text-base text-slate-900 ml-3"
+                className="flex-1 text-base text-slate-900 dark:text-white ml-3"
                 placeholder="Password"
                 placeholderTextColor="#9ca3af"
                 value={password}
@@ -173,7 +173,7 @@ const LoginScreen: React.FC = () => {
             </View>
 
             <TouchableOpacity
-              className={`bg-indigo-500 rounded-xl h-14 flex-row items-center justify-center gap-2 mt-2 ${
+              className={`bg-indigo-600 dark:bg-indigo-500 rounded-xl h-14 flex-row items-center justify-center gap-2 mt-2 ${
                 isLoading ? 'opacity-70' : ''
               }`}
               onPress={handleLogin}
@@ -199,7 +199,7 @@ const LoginScreen: React.FC = () => {
                 disabled={resendStatus === 'sending'}
               >
                 <RefreshCw size={18} color="#6366f1" />
-                <Text className="text-indigo-500 text-sm font-semibold">
+                <Text className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">
                   {resendStatus === 'sending' ? 'Sending...' : 'Resend Verification Email'}
                 </Text>
               </TouchableOpacity>
@@ -215,7 +215,7 @@ const LoginScreen: React.FC = () => {
                 }}
               >
                 <RefreshCw size={18} color="#6366f1" />
-                <Text className="text-indigo-500 text-sm font-semibold">
+                <Text className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">
                   Didn't receive verification email?
                 </Text>
               </TouchableOpacity>
@@ -223,14 +223,14 @@ const LoginScreen: React.FC = () => {
 
             {/* Divider */}
             <View className="flex-row items-center my-5">
-              <View className="flex-1 h-px bg-slate-200" />
+              <View className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
               <Text className="text-slate-400 text-sm mx-4">or</Text>
-              <View className="flex-1 h-px bg-slate-200" />
+              <View className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
             </View>
 
             {/* Google Button */}
             <TouchableOpacity
-              className={`bg-white border border-slate-200 rounded-xl h-14 flex-row items-center justify-center gap-3 ${
+              className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl h-14 flex-row items-center justify-center gap-3 ${
                 isGoogleLoading ? 'opacity-70' : ''
               }`}
               onPress={handleGoogleLogin}
@@ -243,7 +243,7 @@ const LoginScreen: React.FC = () => {
                   <View className="h-6 w-6 rounded-full bg-white items-center justify-center shadow-sm">
                     <Text className="text-[18px] font-bold text-blue-500">G</Text>
                   </View>
-                  <Text className="text-slate-700 text-base font-medium">Continue with Google</Text>
+                  <Text className="text-slate-700 dark:text-slate-200 text-base font-medium">Continue with Google</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -251,16 +251,16 @@ const LoginScreen: React.FC = () => {
 
           {/* Footer */}
           <View className="flex-row items-center justify-center mt-8 gap-2">
-            <Text className="text-slate-500 text-sm">Don't have an account?</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-sm">Don't have an account?</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-              <Text className="text-indigo-500 text-sm font-semibold">Sign Up</Text>
+              <Text className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">Sign Up</Text>
             </TouchableOpacity>
           </View>
 
           <View className="flex-row items-center justify-center mt-3 gap-2">
-            <Text className="text-slate-500 text-sm">Already received an OTP?</Text>
+            <Text className="text-slate-500 dark:text-slate-400 text-sm">Already received an OTP?</Text>
             <TouchableOpacity onPress={handleGoToVerify}>
-              <Text className="text-indigo-500 text-sm font-semibold">Verify Email</Text>
+              <Text className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">Verify Email</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

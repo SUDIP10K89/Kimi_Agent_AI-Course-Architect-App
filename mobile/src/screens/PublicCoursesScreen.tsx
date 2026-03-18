@@ -1,14 +1,13 @@
-/**
+﻿/**
  * Public Courses Screen
  *
  * Displays public courses that users can fork to their account.
  */
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
   FlatList,
   TouchableOpacity,
@@ -21,7 +20,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Search, BookOpen, Clock, Users, Plus } from 'lucide-react-native';
 import { useCourse } from '@/contexts/CourseContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { getPublicCourses, forkCourse } from '@/api/courseApi';
 import type { CoursesStackParamList } from '@/navigation/types';
 import type { Course } from '@/types';
@@ -31,8 +29,6 @@ type PublicCoursesNavigationProp = NativeStackNavigationProp<CoursesStackParamLi
 const PublicCoursesScreen: React.FC = () => {
   const navigation = useNavigation<PublicCoursesNavigationProp>();
   const { fetchCourses } = useCourse();
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
@@ -122,50 +118,50 @@ const PublicCoursesScreen: React.FC = () => {
 
     return (
       <TouchableOpacity
-        style={styles.courseCard}
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 mb-4 flex-row"
         onPress={() => handleForkCourse(course)}
       >
-        <View style={styles.courseContent}>
-          <View style={styles.courseHeader}>
-            <View style={styles.courseStatusBadge}>
-              <Text style={styles.courseStatusText}>Public</Text>
+        <View className="flex-1">
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="bg-indigo-500/10 border border-indigo-500/30 px-3 py-1 rounded-full">
+              <Text className="text-xs font-semibold text-indigo-600 dark:text-indigo-300">Public</Text>
             </View>
-            <View style={styles.authorInfo}>
-              <Users size={14} color={colors.textMuted} />
-              <Text style={styles.authorText}>
+            <View className="flex-row items-center gap-1">
+              <Users size={14} color="#94a3b8" />
+              <Text className="text-slate-500 dark:text-slate-400 text-xs">
                 {(course as any).createdBy?.name || 'Unknown'}
               </Text>
             </View>
           </View>
-          <Text style={styles.courseTitle} numberOfLines={2}>
+          <Text className="text-slate-900 dark:text-white text-base font-semibold" numberOfLines={2}>
             {course.title}
           </Text>
-          <Text style={styles.courseDescription} numberOfLines={2}>
+          <Text className="text-slate-500 dark:text-slate-400 text-sm mt-1" numberOfLines={2}>
             {course.description}
           </Text>
-          <View style={styles.courseMeta}>
-            <View style={styles.metaItem}>
-              <BookOpen size={16} color={colors.textMuted} />
-              <Text style={styles.metaText}>{moduleCount} modules</Text>
+          <View className="flex-row gap-4 mt-3">
+            <View className="flex-row items-center gap-1">
+              <BookOpen size={16} color="#94a3b8" />
+              <Text className="text-slate-500 dark:text-slate-400 text-xs">{moduleCount} modules</Text>
             </View>
-            <View style={styles.metaItem}>
-              <Clock size={16} color={colors.textMuted} />
-              <Text style={styles.metaText}>{totalLessons} lessons</Text>
+            <View className="flex-row items-center gap-1">
+              <Clock size={16} color="#94a3b8" />
+              <Text className="text-slate-500 dark:text-slate-400 text-xs">{totalLessons} lessons</Text>
             </View>
           </View>
         </View>
-        <View style={styles.forkButtonContainer}>
+        <View className="justify-center ml-3">
           <TouchableOpacity
-            style={styles.forkButton}
+            className="bg-indigo-600 dark:bg-indigo-500 rounded-xl px-4 py-2 flex-row items-center gap-2"
             onPress={() => handleForkCourse(course)}
             disabled={forkingId === course._id}
           >
             {forkingId === course._id ? (
-              <ActivityIndicator size="small" color={colors.textInverse} />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <>
-                <Plus size={18} color={colors.textInverse} />
-                <Text style={styles.forkButtonText}>Add</Text>
+                <Plus size={16} color="#ffffff" />
+                <Text className="text-white text-sm font-semibold">Add</Text>
               </>
             )}
           </TouchableOpacity>
@@ -175,10 +171,10 @@ const PublicCoursesScreen: React.FC = () => {
   };
 
   const renderEmptyList = () => (
-    <View style={styles.emptyContainer}>
-      <BookOpen size={64} color={colors.textMuted} />
-      <Text style={styles.emptyTitle}>No Public Courses</Text>
-      <Text style={styles.emptyText}>
+    <View className="items-center justify-center py-16">
+      <BookOpen size={64} color="#cbd5f5" />
+      <Text className="text-slate-900 dark:text-white text-lg font-semibold mt-4">No Public Courses</Text>
+      <Text className="text-slate-500 dark:text-slate-400 text-sm text-center mt-2 px-10">
         {searchQuery
           ? 'No courses match your search'
           : 'Be the first to make your course public!'}
@@ -189,21 +185,21 @@ const PublicCoursesScreen: React.FC = () => {
   const renderFooter = () => {
     if (!isLoading || page === 1) return null;
     return (
-      <View style={styles.loadingMore}>
-        <ActivityIndicator size="small" color={colors.primary} />
+      <View className="py-4 items-center">
+        <ActivityIndicator size="small" color="#6366f1" />
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={20} color={colors.textMuted} style={styles.searchIcon} />
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
+      <View className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4">
+          <Search size={18} color="#94a3b8" />
           <TextInput
-            style={styles.searchInput}
+            className="flex-1 py-3 text-slate-900 dark:text-white text-base ml-2"
             placeholder="Search public courses..."
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor="#94a3b8"
             value={searchQuery}
             onChangeText={handleSearch}
           />
@@ -214,7 +210,7 @@ const PublicCoursesScreen: React.FC = () => {
         data={courses}
         renderItem={renderCourseCard}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         ListEmptyComponent={!isLoading ? renderEmptyList : null}
         ListFooterComponent={renderFooter}
         onEndReached={loadMore}
@@ -223,161 +219,18 @@ const PublicCoursesScreen: React.FC = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
+            tintColor="#6366f1"
           />
         }
       />
 
       {isLoading && page === 1 && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View className="absolute inset-0 items-center justify-center bg-slate-900/10">
+          <ActivityIndicator size="large" color="#6366f1" />
         </View>
       )}
     </SafeAreaView>
   );
 };
-
-const createStyles = (colors: ReturnType<typeof useTheme>['colors']) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    searchContainer: {
-      padding: 16,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surfaceMuted,
-      borderRadius: 12,
-      paddingHorizontal: 16,
-    },
-    searchIcon: {
-      marginRight: 12,
-    },
-    searchInput: {
-      flex: 1,
-      paddingVertical: 12,
-      fontSize: 16,
-      color: colors.text,
-    },
-    listContent: {
-      padding: 16,
-      paddingBottom: 32,
-    },
-    courseCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 16,
-      borderWidth: 1,
-      borderColor: colors.border,
-      flexDirection: 'row',
-    },
-    courseContent: {
-      flex: 1,
-    },
-    courseHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    courseStatusBadge: {
-      backgroundColor: colors.primarySoft,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 12,
-    },
-    courseStatusText: {
-      color: colors.primary,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    authorInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    authorText: {
-      color: colors.textMuted,
-      fontSize: 12,
-    },
-    courseTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: colors.text,
-      marginBottom: 4,
-    },
-    courseDescription: {
-      fontSize: 14,
-      color: colors.textMuted,
-      marginBottom: 12,
-      lineHeight: 20,
-    },
-    courseMeta: {
-      flexDirection: 'row',
-      gap: 16,
-    },
-    metaItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    metaText: {
-      color: colors.textMuted,
-      fontSize: 13,
-    },
-    forkButtonContainer: {
-      justifyContent: 'center',
-      marginLeft: 12,
-    },
-    forkButton: {
-      backgroundColor: colors.primary,
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderRadius: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    forkButtonText: {
-      color: colors.textInverse,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-    emptyContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 60,
-    },
-    emptyTitle: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: colors.text,
-      marginTop: 16,
-      marginBottom: 8,
-    },
-    emptyText: {
-      fontSize: 15,
-      color: colors.textMuted,
-      textAlign: 'center',
-      paddingHorizontal: 40,
-    },
-    loadingContainer: {
-      ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(255,255,255,0.9)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    loadingMore: {
-      paddingVertical: 20,
-      alignItems: 'center',
-    },
-  });
 
 export default PublicCoursesScreen;

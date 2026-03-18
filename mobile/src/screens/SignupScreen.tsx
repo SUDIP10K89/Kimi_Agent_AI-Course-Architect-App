@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Signup Screen
  * 
  * User registration screen with name, email, and password.
@@ -10,7 +10,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
@@ -79,36 +78,38 @@ const SignupScreen: React.FC = () => {
   const displayError = localError || error;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-950">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
+        className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerClassName="flex-grow justify-center px-6 py-8"
           keyboardShouldPersistTaps="handled"
         >
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
+          <View className="items-center mb-8">
+            <View className="h-20 w-20 rounded-full bg-indigo-100 dark:bg-indigo-500/20 items-center justify-center mb-4">
               <GraduationCap size={48} color="#6366f1" />
             </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start your AI-powered learning journey</Text>
+            <Text className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create Account</Text>
+            <Text className="text-base text-slate-500 dark:text-slate-400 text-center">
+              Start your AI-powered learning journey
+            </Text>
           </View>
 
           {/* Form */}
-          <View style={styles.form}>
+          <View className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm shadow-black/10 border border-slate-100 dark:border-slate-800">
             {displayError && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{displayError}</Text>
+              <View className="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/30 rounded-lg px-3 py-3 mb-4">
+                <Text className="text-rose-600 dark:text-rose-200 text-sm">{displayError}</Text>
               </View>
             )}
 
-            <View style={styles.inputContainer}>
-              <User size={20} color="#6b7280" style={styles.inputIcon} />
+            <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4 h-14 mb-4">
+              <User size={20} color="#6b7280" />
               <TextInput
-                style={styles.input}
+                className="flex-1 text-base text-slate-900 dark:text-white ml-3"
                 placeholder="Full Name"
                 placeholderTextColor="#9ca3af"
                 value={name}
@@ -118,10 +119,10 @@ const SignupScreen: React.FC = () => {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Mail size={20} color="#6b7280" style={styles.inputIcon} />
+            <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4 h-14 mb-4">
+              <Mail size={20} color="#6b7280" />
               <TextInput
-                style={styles.input}
+                className="flex-1 text-base text-slate-900 dark:text-white ml-3"
                 placeholder="Email"
                 placeholderTextColor="#9ca3af"
                 value={email}
@@ -132,10 +133,10 @@ const SignupScreen: React.FC = () => {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#6b7280" style={styles.inputIcon} />
+            <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4 h-14 mb-4">
+              <Lock size={20} color="#6b7280" />
               <TextInput
-                style={styles.input}
+                className="flex-1 text-base text-slate-900 dark:text-white ml-3"
                 placeholder="Password"
                 placeholderTextColor="#9ca3af"
                 value={password}
@@ -144,10 +145,10 @@ const SignupScreen: React.FC = () => {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Lock size={20} color="#6b7280" style={styles.inputIcon} />
+            <View className="flex-row items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-4 h-14 mb-4">
+              <Lock size={20} color="#6b7280" />
               <TextInput
-                style={styles.input}
+                className="flex-1 text-base text-slate-900 dark:text-white ml-3"
                 placeholder="Confirm Password"
                 placeholderTextColor="#9ca3af"
                 value={confirmPassword}
@@ -157,7 +158,9 @@ const SignupScreen: React.FC = () => {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+              className={`bg-indigo-600 dark:bg-indigo-500 rounded-xl h-14 flex-row items-center justify-center gap-2 mt-2 ${
+                isLoading ? 'opacity-70' : ''
+              }`}
               onPress={handleSignup}
               disabled={isLoading}
             >
@@ -165,7 +168,7 @@ const SignupScreen: React.FC = () => {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Text style={styles.buttonText}>Create Account</Text>
+                  <Text className="text-white text-base font-semibold">Create Account</Text>
                   <ArrowRight size={20} color="#fff" />
                 </>
               )}
@@ -173,10 +176,10 @@ const SignupScreen: React.FC = () => {
           </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account?</Text>
+          <View className="flex-row items-center justify-center mt-8 gap-2">
+            <Text className="text-slate-500 dark:text-slate-400 text-sm">Already have an account?</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.linkText}>Sign In</Text>
+              <Text className="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">Sign In</Text>
             </TouchableOpacity>
           </View>
 
@@ -185,113 +188,5 @@ const SignupScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#eef2ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  form: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  errorContainer: {
-    backgroundColor: '#fef2f2',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    color: '#dc2626',
-    fontSize: 14,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#111827',
-  },
-  button: {
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
-    height: 56,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 32,
-    gap: 8,
-  },
-  footerText: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  linkText: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
 
 export default SignupScreen;
