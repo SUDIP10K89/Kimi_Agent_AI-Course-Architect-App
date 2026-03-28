@@ -175,7 +175,136 @@ The ${APP_NAME} Team
   return transporter.sendMail(mailOptions);
 };
 
+/**
+ * Send password reset OTP email
+ * @param {string} email - User's email address
+ * @param {string} otp - One-time password
+ * @param {string} name - User's name
+ */
+export const sendPasswordResetEmail = async (email, otp, name) => {
+  const mailOptions = {
+    from: `"${APP_NAME}" <${process.env.SMTP_USER || 'noreply@coursearchitect.ai'}>`,
+    to: email,
+    subject: `Your ${APP_NAME} Password Reset Code`,
+    text: `
+Hi ${name},
+
+We received a request to reset your password.
+
+Your password reset code is: ${otp}
+
+This code will expire in 10 minutes.
+
+If you didn't request a password reset, you can safely ignore this email.
+
+Best regards,
+The ${APP_NAME} Team
+    `.trim(),
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 12px; text-align: center;">
+    <h1 style="color: white; margin: 0;">${APP_NAME}</h1>
+  </div>
+  
+  <div style="padding: 30px; background: #f9fafb; border-radius: 12px; margin-top: 20px;">
+    <h2 style="color: #111827; margin-top: 0;">Hi ${name},</h2>
+    
+    <p style="color: #6b7280;">Use the reset code below to set a new password.</p>
+    
+    <div style="background: #fff; border: 2px solid #6366f1; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+      <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">Your reset code:</p>
+      <p style="color: #6366f1; font-size: 32px; font-weight: bold; margin: 0; letter-spacing: 8px;">${otp}</p>
+    </div>
+    
+    <p style="color: #9ca3af; font-size: 14px;">This code will expire in 10 minutes.</p>
+    
+    <p style="color: #9ca3af; font-size: 14px;">If you didn’t request this, ignore this email.</p>
+  </div>
+  
+  <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
+    If you didn't request a password reset, please ignore this email.
+  </p>
+</body>
+</html>
+    `.trim(),
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('[EMAIL] Password reset OTP sent successfully to', email, 'MessageId:', result.messageId);
+    return result;
+  } catch (error) {
+    console.error('[EMAIL] Failed to send password reset email to', email, error);
+    throw error;
+  }
+};
+
+/**
+ * Send password reset success email
+ * @param {string} email - User's email address
+ * @param {string} name - User's name
+ */
+export const sendPasswordResetSuccessEmail = async (email, name) => {
+  const mailOptions = {
+    from: `"${APP_NAME}" <${process.env.SMTP_USER || 'noreply@coursearchitect.ai'}>`,
+    to: email,
+    subject: `${APP_NAME} Password Reset Successful`,
+    text: `
+Hi ${name},
+
+Your password was successfully reset.
+
+If you did not perform this action, please contact support immediately.
+
+Best regards,
+The ${APP_NAME} Team
+    `.trim(),
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px; border-radius: 12px; text-align: center;">
+    <h1 style="color: white; margin: 0;">${APP_NAME}</h1>
+  </div>
+  
+  <div style="padding: 30px; background: #f9fafb; border-radius: 12px; margin-top: 20px;">
+    <h2 style="color: #111827; margin-top: 0;">Hi ${name},</h2>
+    
+    <p style="color: #6b7280;">Your password was successfully reset.</p>
+    <p style="color: #6b7280;">If you did not perform this action, please contact support immediately.</p>
+  </div>
+  
+  <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
+    Thanks for using ${APP_NAME}.
+  </p>
+</body>
+</html>
+    `.trim(),
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('[EMAIL] Password reset success email sent to', email, 'MessageId:', result.messageId);
+    return result;
+  } catch (error) {
+    console.error('[EMAIL] Failed to send password reset success email to', email, error);
+    throw error;
+  }
+};
+
 export default {
   sendVerificationEmail,
   sendWelcomeEmail,
+  sendPasswordResetEmail,
+  sendPasswordResetSuccessEmail,
 };

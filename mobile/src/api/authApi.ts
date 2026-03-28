@@ -74,3 +74,59 @@ export const googleLogin = async (idToken: string): Promise<ApiResponse<AuthResp
   const response = await apiPost<ApiResponse<AuthResponse>>('/auth/google', { idToken });
   return response.data;
 };
+
+/**
+ * Request password reset OTP
+ */
+export const forgotPassword = async (email: string): Promise<ApiResponse<{ message: string }>> => {
+  const response = await apiPost<ApiResponse<{ message: string }>>('/auth/forgot-password', { email });
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to send reset code');
+  }
+  return result;
+};
+
+/**
+ * Verify reset OTP, returns resetToken
+ */
+export const verifyResetOtp = async (email: string, otp: string): Promise<ApiResponse<{ resetToken: string }>> => {
+  const response = await apiPost<ApiResponse<{ resetToken: string }>>('/auth/verify-reset-otp', { email, otp });
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || 'Invalid or expired OTP');
+  }
+  return result;
+};
+
+/**
+ * Reset password using reset token
+ */
+export const resetPassword = async (
+  email: string,
+  resetToken: string,
+  newPassword: string
+): Promise<ApiResponse<AuthResponse>> => {
+  const response = await apiPost<ApiResponse<AuthResponse>>('/auth/reset-password', {
+    email,
+    resetToken,
+    newPassword,
+  });
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || 'Password reset failed');
+  }
+  return result;
+};
+
+/**
+ * Resend reset OTP
+ */
+export const resendResetOtp = async (email: string): Promise<ApiResponse<{ message: string }>> => {
+  const response = await apiPost<ApiResponse<{ message: string }>>('/auth/resend-reset-otp', { email });
+  const result = response.data;
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to resend reset code');
+  }
+  return result;
+};

@@ -32,6 +32,8 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const generateResetToken = () => crypto.randomBytes(24).toString('hex');
+
 export const signupUser = async ({ name, email, password }) => {
   const normalizedEmail = normalizeEmail(email);
   const existing = await User.findOne({ email: normalizedEmail });
@@ -232,10 +234,127 @@ export const googleLogin = async (idToken) => {
   }
 };
 
+export const requestPasswordReset = async (email) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail });
+
+  if (!user) {
+    return { message: 'If an account exists with this email, a reset OTP has been sent.' };
+  }
+
+  const otp = generateOTP();
+  const otpExpires = Date.now() + 10 * 60 * 1000;
+
+  user.resetOtp = otp;
+  user.resetOtpExpires = otpExpires;
+  user.resetToken = undefined;
+  user.resetTokenExpires = undefined;
+  await user.save();
+
+  try {
+    await emailService.sendPasswordResetEmail(email, otp, user.name);
+  } catch (err) {
+    console.error('Failed to send password reset email:', err);
+    throw new Error('Failed to send reset email. Please try again.');
+  }
+
+  return { message: 'Reset OTP sent. Check your inbox.' };
+};
+
+export const verifyResetOtp = async (email, otp) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail }).select('+resetOtp +resetOtpExpires');
+
+  if (!user) {
+    const error = new Error('Invalid or expired OTP');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!user.resetOtp || user.resetOtp !== otp || user.resetOtpExpires < Date.now()) {
+    const error = new Error('Invalid or expired OTP');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const resetToken = generateResetToken();
+  user.resetToken = resetToken;
+  user.resetTokenExpires = Date.now() + 10 * 60 * 1000;
+  user.resetOtp = undefined;
+  user.resetOtpExpires = undefined;
+  await user.save();
+
+  return { resetToken };
+};
+
+export const resetPassword = async (email, resetToken, newPassword) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail }).select('+resetToken +resetTokenExpires +password');
+
+  if (!user) {
+    const error = new Error('Invalid or expired reset token');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!user.resetToken || user.resetToken !== resetToken || user.resetTokenExpires < Date.now()) {
+    const error = new Error('Invalid or expired reset token');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  user.password = newPassword;
+  user.resetToken = undefined;
+  user.resetTokenExpires = undefined;
+  await user.save();
+
+  try {
+    await emailService.sendPasswordResetSuccessEmail(user.email, user.name);
+  } catch (err) {
+    console.error('Failed to send password reset success email:', err);
+  }
+
+  return {
+    user: user.toJSON(),
+    token: signToken(user),
+  };
+};
+
+export const resendResetOtp = async (email) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail });
+
+  if (!user) {
+    return { message: 'If an account exists with this email, a reset OTP has been sent.' };
+  }
+
+  const otp = generateOTP();
+  const otpExpires = Date.now() + 10 * 60 * 1000;
+
+  user.resetOtp = otp;
+  user.resetOtpExpires = otpExpires;
+  user.resetToken = undefined;
+  user.resetTokenExpires = undefined;
+  await user.save();
+
+  try {
+    await emailService.sendPasswordResetEmail(email, otp, user.name);
+  } catch (err) {
+    console.error('Failed to resend password reset email:', err);
+    throw new Error('Failed to send reset email. Please try again.');
+  }
+
+  return { message: 'Reset OTP sent. Check your inbox.' };
+};
+
 export default {
   loginUser,
   signupUser,
   verifyEmail,
   resendVerification,
   googleLogin,
+  requestPasswordReset,
+  verifyResetOtp,
+  resetPassword,
+  resendResetOtp,
 };

@@ -6,7 +6,14 @@
 
 import express from 'express';
 import * as authController from './auth.controller.js';
-import { loginValidation, signupValidation } from './auth.validators.js';
+import {
+  loginValidation,
+  signupValidation,
+  forgotPasswordValidation,
+  verifyResetOtpValidation,
+  resetPasswordValidation,
+  resendResetOtpValidation,
+} from './auth.validators.js';
 import { validateRequest } from '../../shared/middleware/validateRequest.js';
 
 const router = express.Router();
@@ -172,6 +179,58 @@ router.post(
 router.post(
   '/google',
   authController.googleAuth
+);
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Send password reset OTP
+ *     tags: [Auth]
+ */
+router.post(
+  '/forgot-password',
+  validateRequest(forgotPasswordValidation),
+  authController.forgotPassword
+);
+
+/**
+ * @swagger
+ * /auth/verify-reset-otp:
+ *   post:
+ *     summary: Verify password reset OTP
+ *     tags: [Auth]
+ */
+router.post(
+  '/verify-reset-otp',
+  validateRequest(verifyResetOtpValidation),
+  authController.verifyResetOtp
+);
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password using reset token
+ *     tags: [Auth]
+ */
+router.post(
+  '/reset-password',
+  validateRequest(resetPasswordValidation),
+  authController.resetPassword
+);
+
+/**
+ * @swagger
+ * /auth/resend-reset-otp:
+ *   post:
+ *     summary: Resend password reset OTP
+ *     tags: [Auth]
+ */
+router.post(
+  '/resend-reset-otp',
+  validateRequest(resendResetOtpValidation),
+  authController.resendResetOtp
 );
 
 export default router;

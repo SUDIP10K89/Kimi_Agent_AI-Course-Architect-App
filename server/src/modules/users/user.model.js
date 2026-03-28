@@ -42,6 +42,22 @@ const userSchema = new mongoose.Schema(
     otpExpires: {
       type: Date,
     },
+    // Password reset OTP
+    resetOtp: {
+      type: String,
+      select: false,
+    },
+    resetOtpExpires: {
+      type: Date,
+    },
+    // Password reset token (after OTP verification)
+    resetToken: {
+      type: String,
+      select: false,
+    },
+    resetTokenExpires: {
+      type: Date,
+    },
     verifiedAt: {
       type: Date,
     },

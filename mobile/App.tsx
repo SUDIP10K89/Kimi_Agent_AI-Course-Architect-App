@@ -13,6 +13,7 @@ import { CourseProvider } from '@/contexts/CourseContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import AppNavigator from '@/navigation/AppNavigator';
 import { registerLogoutCallback } from '@/api/client';
+import { ToastProvider } from '@/components/auth/ToastProvider';
 
 // Component to register logout callback after AuthContext is available
 const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,15 +43,17 @@ const AppShell: React.FC = () => {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <ThemeProvider>
-        <AuthProvider>
-          <AuthInitializer>
-            <CourseProvider>
-              <AppShell />
-            </CourseProvider>
-          </AuthInitializer>
-        </AuthProvider>
-      </ThemeProvider>
+      <ToastProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <AuthInitializer>
+              <CourseProvider>
+                <AppShell />
+              </CourseProvider>
+            </AuthInitializer>
+          </AuthProvider>
+        </ThemeProvider>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

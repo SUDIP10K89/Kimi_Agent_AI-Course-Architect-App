@@ -13,9 +13,15 @@ import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigat
 // ============================================
 
 export type AuthStackParamList = {
+  Splash: undefined;
   Login: undefined;
-  Signup: undefined;
-  VerifyEmail: { email?: string };
+  Password: { email: string };
+  Register: undefined;
+  RegisterOtp: { name: string; email: string; resetKey: number };
+  ForgotPassword: { email?: string };
+  ResetOtp: { email: string; resetKey: number };
+  SetNewPassword: { email: string; resetToken: string };
+  GoogleOAuthLoading: { name?: string; email?: string };
 };
 
 // ============================================
@@ -73,8 +79,8 @@ export type LoginScreenProps = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList>
 >;
 
-export type SignupScreenProps = CompositeScreenProps<
-  NativeStackScreenProps<AuthStackParamList, 'Signup'>,
+export type RegisterScreenProps = CompositeScreenProps<
+  NativeStackScreenProps<AuthStackParamList, 'Register'>,
   BottomTabScreenProps<MainTabParamList>
 >;
 

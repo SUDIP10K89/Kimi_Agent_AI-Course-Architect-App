@@ -15,9 +15,15 @@ import { Home, BookOpen, Settings, PlusCircle, Globe } from 'lucide-react-native
 import * as Linking from 'expo-linking';
 
 // Import screens (will be created next)
+import SplashScreen from '@/screens/SplashScreen';
 import LoginScreen from '@/screens/LoginScreen';
-import SignupScreen from '@/screens/SignupScreen';
-import VerifyEmailScreen from '@/screens/VerifyEmailScreen';
+import PasswordScreen from '@/screens/PasswordScreen';
+import RegisterScreen from '@/screens/RegisterScreen';
+import RegisterOtpScreen from '@/screens/RegisterOtpScreen';
+import ForgotPasswordScreen from '@/screens/ForgotPasswordScreen';
+import ResetOtpScreen from '@/screens/ResetOtpScreen';
+import SetNewPasswordScreen from '@/screens/SetNewPasswordScreen';
+import GoogleOAuthLoadingScreen from '@/screens/GoogleOAuthLoadingScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import GenerateCourseScreen from '@/screens/GenerateCourseScreen';
 import PublicCoursesScreen from '@/screens/PublicCoursesScreen';
@@ -63,10 +69,17 @@ const AuthNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
       }}
+      initialRouteName="Splash"
     >
+      <AuthStack.Screen name="Splash" component={SplashScreen} />
       <AuthStack.Screen name="Login" component={LoginScreen} />
-      <AuthStack.Screen name="Signup" component={SignupScreen} />
-      <AuthStack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+      <AuthStack.Screen name="Password" component={PasswordScreen} />
+      <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="RegisterOtp" component={RegisterOtpScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="ResetOtp" component={ResetOtpScreen} />
+      <AuthStack.Screen name="SetNewPassword" component={SetNewPasswordScreen} />
+      <AuthStack.Screen name="GoogleOAuthLoading" component={GoogleOAuthLoadingScreen} />
     </AuthStack.Navigator>
   );
 };
